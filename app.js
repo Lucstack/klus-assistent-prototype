@@ -1,14 +1,13 @@
+// Importeer benodigde Firebase functies. Dit MOET op het hoogste niveau gebeuren.
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { getFirestore, collection, addDoc, onSnapshot, query, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
 // Wacht tot de volledige HTML-pagina is geladen voordat we de app starten.
-// Dit voorkomt "dubbel opstarten" en zorgt ervoor dat alle elementen bestaan.
 document.addEventListener('DOMContentLoaded', () => {
     console.log("DOM volledig geladen. App wordt gestart.");
 
-    // Importeer benodigde Firebase functies
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, collection, addDoc, onSnapshot, query, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-    // --- Globale Variabelen & UI Elementen ---
+    // --- UI Elementen ---
     const scherm1 = document.getElementById('scherm1');
     const scherm2 = document.getElementById('scherm2');
     const scherm3 = document.getElementById('scherm3');
@@ -20,6 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const opgeslagenKlussenLijst = document.getElementById('opgeslagenKlussenLijst');
     const toast = document.getElementById('toast');
 
+    // --- Globale Variabelen ---
     let db, auth;
     let currentPlanData = null;
     let userId, appId;
@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function toonScherm(schermId) {
-        [scherm1, scherm2, scherm3].forEach(s => s.classList.add('hidden'));
+        [scherm1, scherm2, scherm3].forEach(s => { if(s) s.classList.add('hidden') });
         const activeScherm = document.getElementById(schermId);
         if (activeScherm) {
             activeScherm.classList.remove('hidden');
@@ -61,8 +61,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function startNieuweKlus() {
         toonScherm('scherm1');
-        klusInput.value = '';
-        planOutput.innerHTML = '';
+        if(klusInput) klusInput.value = '';
+        if(planOutput) planOutput.innerHTML = '';
         currentPlanData = null;
     }
 
@@ -178,6 +178,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Initialisatie van de app ---
 
     async function init() {
+        if (!planButton) {
+            console.error("Knoppen niet gevonden, app kan niet initialiseren.");
+            return;
+        }
         // Koppel event listeners
         planButton.addEventListener('click', genereerPlan);
         bewaarButton.addEventListener('click', bewaarPlan);
