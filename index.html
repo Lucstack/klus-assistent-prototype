@@ -11,44 +11,11 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* Basisstijl en font voor de hele app */
-        body {
-            font-family: 'Inter', sans-serif;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-        }
-        /* Stijl voor de laad-animatie */
-        .loader {
-            width: 24px;
-            height: 24px;
-            border: 2px solid #e5e7eb; /* gray-200 */
-            border-bottom-color: #1f2937; /* gray-800 */
-            border-radius: 50%;
-            display: inline-block;
-            box-sizing: border-box;
-            animation: rotation 1s linear infinite;
-        }
-        @keyframes rotation {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-         /* Stijl voor de foutmelding-toast */
-        #toast {
-            position: fixed;
-            bottom: -100px;
-            left: 50%;
-            transform: translateX(-50%);
-            padding: 12px 20px;
-            background-color: #dc2626; /* red-600 */
-            color: white;
-            border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            transition: bottom 0.5s ease-in-out;
-            z-index: 1000;
-        }
-        #toast.show {
-            bottom: 20px;
-        }
+        body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+        .loader { width: 24px; height: 24px; border: 2px solid #e5e7eb; border-bottom-color: #1f2937; border-radius: 50%; display: inline-block; box-sizing: border-box; animation: rotation 1s linear infinite; }
+        @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        #toast { position: fixed; bottom: -100px; left: 50%; transform: translateX(-50%); padding: 12px 20px; background-color: #dc2626; color: white; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: bottom 0.5s ease-in-out; z-index: 1000; }
+        #toast.show { bottom: 20px; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900">
@@ -83,11 +50,7 @@
         <header class="text-center py-6">
             <h1 class="text-xl font-semibold text-slate-800">Jouw Klusplan</h1>
         </header>
-        
-        <main id="planOutput" class="flex-grow space-y-4">
-            <!-- Hier wordt de dynamische content ingeladen -->
-        </main>
-
+        <main id="planOutput" class="flex-grow space-y-4"></main>
         <footer class="py-4 mt-4 space-y-2">
             <button onclick="startNieuweKlus()" class="w-full bg-slate-900 text-white font-semibold py-3 px-4 rounded-lg shadow-sm hover:bg-slate-800 transition active:scale-95">
                 Nieuwe klus starten
@@ -95,11 +58,10 @@
         </footer>
     </div>
     
-    <!-- Toast Notificatie voor Foutmeldingen -->
     <div id="toast"></div>
 
     <script>
-        // Elementen selecteren
+        // --- UI Elementen ---
         const scherm1 = document.getElementById('scherm1');
         const scherm2 = document.getElementById('scherm2');
         const scherm3 = document.getElementById('scherm3');
@@ -108,32 +70,17 @@
         const planOutput = document.getElementById('planOutput');
         const toast = document.getElementById('toast');
 
-        // De AI-prompt die we hebben ontworpen
-        const systemPrompt = `
-            JOUW ROL & DOEL: Jij bent een hyper-intelligente, ervaren assistent voor zelfstandige vakmensen in de Nederlandse bouw en techniek. Jouw doel is om een korte, vaak ongestructureerde klusomschrijving om te zetten in een helder, praktisch en gestructureerd plan van aanpak. Je bent betrouwbaar, to-the-point en je denkt altijd een stap vooruit.
-            DE GEBRUIKER: De gebruiker is een drukke ZZP'er (timmerman, installateur, etc.). Hij heeft geen tijd voor onzin. Hij wil snel inzicht en overzicht.
-            DE OUTPUT (CRUCIAAL): Jouw antwoord MOET ALTIJD en UITSLUITEND een valide JSON-object zijn. Gebruik de volgende structuur:
-            {
-              "klusTitel": "Korte, pakkende titel voor de klus",
-              "schattingUren": { "min": 0, "max": 0 },
-              "schattingWerkdagen": { "min": 0, "max": 0 },
-              "fasering": [ { "faseNummer": 1, "titel": "Korte titel", "duurDagen": 0, "omschrijving": "Omschrijving van de taken." } ],
-              "slimmeWaarschuwingen": [ "Een praktische tip of waarschuwing.", "Een tweede tip." ]
-            }
-            REGELS: Baseer schattingen op realistische scenario's. De fasering moet logisch en chronologisch zijn. De "slimmeWaarschuwingen" moeten proactief en nuttig zijn. Genereer alléén het JSON-object, zonder extra tekst.
-        `;
+        // --- Functies ---
         
         function showToast(message) {
             if (!toast) return;
             toast.textContent = message;
             toast.classList.add('show');
-            setTimeout(() => {
-                toast.classList.remove('show');
-            }, 3000);
+            setTimeout(() => { toast.classList.remove('show'); }, 3000);
         }
 
-        // Functie om het plan te genereren
-        async function genereerPlan() {
+        // **AANGEPASTE FUNCTIE: SIMULATIE VAN DE AI**
+        function genereerPlan() {
             const userInput = klusInput.value.trim();
             if (userInput === '') {
                 showToast('Omschrijf eerst je klus.');
@@ -144,103 +91,46 @@
             scherm1.classList.add('hidden');
             scherm2.classList.remove('hidden');
             scherm2.classList.add('flex');
-            planButton.disabled = true;
-            planButton.innerHTML = '<div class="loader"></div>';
-
-            try {
-                // De Gemini API aanroepen
-                const chatHistory = [
-                    { role: "user", parts: [{ text: systemPrompt + "\n\nGebruiker input: " + userInput }] }
-                ];
-                const payload = { 
-                    contents: chatHistory,
-                    generationConfig: { responseMimeType: "application/json" }
+            
+            // Wacht 2 seconden om de AI te simuleren
+            setTimeout(() => {
+                // Hardcoded voorbeeldplan (het "nep"-antwoord)
+                const voorbeeldPlan = {
+                  "klusTitel": "Badkamer renovatie (voorbeeld)",
+                  "schattingUren": { "min": 40, "max": 48 },
+                  "schattingWerkdagen": { "min": 6, "max": 8 },
+                  "fasering": [
+                    { "faseNummer": 1, "titel": "Slopen & Voorbereiden", "duurDagen": 2, "omschrijving": "Volledig strippen van de oude badkamer, afvoeren van puin en voorbereiden van de ondergrond en leidingen." },
+                    { "faseNummer": 2, "titel": "Leidingwerk & Vloer", "duurDagen": 2, "omschrijving": "Verleggen van waterleidingen en afvoer, installeren van de elektrische vloerverwarming en storten van de cementdekvloer." },
+                    { "faseNummer": 3, "titel": "Tegelwerk", "duurDagen": 2, "omschrijving": "Aanbrengen van wand- en vloertegels. Inclusief het waterdicht maken van de douchehoek." },
+                    { "faseNummer": 4, "titel": "Afmontage & Afwerking", "duurDagen": 2, "omschrijving": "Installeren van de inloopdouche, toilet en wastafel. Voegen van het tegelwerk en afkitten van alle naden." }
+                  ],
+                  "slimmeWaarschuwingen": [
+                    "Houd rekening met de droogtijd van de cementdekvloer (minimaal 24-48 uur) voordat je kunt tegelen.",
+                    "Controleer de levertijd van het specifieke sanitair en de tegels om vertraging in de planning te voorkomen."
+                  ]
                 };
-                const apiKey = ""; // API key is not needed for gemini-2.0-flash
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
                 
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                if (!response.ok) {
-                    throw new Error(`API request failed with status ${response.status}`);
-                }
-                
-                const result = await response.json();
-                
-                if (result.candidates && result.candidates.length > 0 && result.candidates[0].content.parts.length > 0) {
-                    const planData = JSON.parse(result.candidates[0].content.parts[0].text);
-                    toonPlan(planData);
+                // Pas de titel aan op basis van de input van de gebruiker voor een realistischer gevoel
+                if (userInput.toLowerCase().includes('badkamer')) {
+                    voorbeeldPlan.klusTitel = "Badkamer renovatie";
+                } else if (userInput.toLowerCase().includes('keuken')) {
+                    voorbeeldPlan.klusTitel = "Keukenmontage";
                 } else {
-                    throw new Error("Ongeldig antwoord van de AI.");
+                     voorbeeldPlan.klusTitel = "Algemene klus";
                 }
 
-            } catch (error) {
-                console.error("Fout bij het genereren van het plan:", error);
-                showToast("Er is iets misgegaan. Probeer het opnieuw.");
-                startNieuweKlus(); // Reset de UI
-            } finally {
-                // Reset de knop
-                planButton.disabled = false;
-                planButton.innerHTML = 'Maak een slim plan';
-            }
+                toonPlan(voorbeeldPlan);
+
+            }, 2000); // 2 seconden wachttijd
         }
 
-        // Functie om de ontvangen data in de UI te tonen
         function toonPlan(data) {
             planOutput.innerHTML = `
-                <!-- Klustitel Card -->
-                <div class="bg-white p-4 rounded-xl border border-slate-200 animate-fade-in">
-                    <h2 class="text-lg font-semibold">${data.klusTitel}</h2>
-                    <p class="text-sm text-slate-500">Gestructureerd plan op basis van jouw input.</p>
-                </div>
-
-                <!-- Samenvatting Card -->
-                <div class="bg-white p-4 rounded-xl border border-slate-200 animate-fade-in">
-                    <div class="grid grid-cols-2 gap-4 text-center">
-                        <div>
-                            <p class="text-2xl font-bold text-slate-800">${data.schattingUren.min}-${data.schattingUren.max}</p>
-                            <p class="text-sm font-medium text-slate-500">Geschatte uren</p>
-                        </div>
-                        <div>
-                            <p class="text-2xl font-bold text-slate-800">${data.schattingWerkdagen.min}-${data.schattingWerkdagen.max}</p>
-                            <p class="text-sm font-medium text-slate-500">Werkdagen</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Fasering Card -->
-                <div class="bg-white p-4 rounded-xl border border-slate-200 animate-fade-in">
-                    <h3 class="font-semibold mb-3 text-slate-800">Voorgestelde Fasering</h3>
-                    <ul class="space-y-3 text-sm">
-                        ${data.fasering.map(fase => `
-                            <li class="flex items-start">
-                                <span class="mr-3 mt-1 w-4 h-4 text-white text-xs bg-blue-600 rounded-full flex items-center justify-center font-bold">${fase.faseNummer}</span>
-                                <div><span class="font-semibold">${fase.titel}:</span> ${fase.omschrijving}</div>
-                            </li>
-                        `).join('')}
-                    </ul>
-                </div>
-
-                <!-- Waarschuwingen Card -->
-                <div class="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-r-lg animate-fade-in">
-                    <div class="flex">
-                        <div class="flex-shrink-0">
-                            <svg class="h-5 w-5 text-amber-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.21 3.03-1.742 3.03H4.42c-1.532 0-2.492-1.696-1.742-3.03l5.58-9.92zM10 13a1 1 0 110-2 1 1 0 010 2zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
-                        </div>
-                        <div class="ml-3">
-                            <h3 class="text-sm font-semibold text-amber-800">Slimme Waarschuwingen</h3>
-                            <div class="mt-1 text-sm text-amber-700">
-                                <ul class="list-disc list-inside space-y-1">
-                                    ${data.slimmeWaarschuwingen.map(w => `<li>${w}</li>`).join('')}
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200"><h2 class="text-lg font-semibold">${data.klusTitel}</h2><p class="text-sm text-slate-500">Gestructureerd plan op basis van jouw input.</p></div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200"><div class="grid grid-cols-2 gap-4 text-center"><div><p class="text-2xl font-bold text-slate-800">${data.schattingUren.min}-${data.schattingUren.max}</p><p class="text-sm font-medium text-slate-500">Geschatte uren</p></div><div><p class="text-2xl font-bold text-slate-800">${data.schattingWerkdagen.min}-${data.schattingWerkdagen.max}</p><p class="text-sm font-medium text-slate-500">Werkdagen</p></div></div></div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200"><h3 class="font-semibold mb-3 text-slate-800">Voorgestelde Fasering</h3><ul class="space-y-3 text-sm">${data.fasering.map(fase => `<li class="flex items-start"><span class="mr-3 mt-1 w-4 h-4 text-white text-xs bg-blue-600 rounded-full flex items-center justify-center font-bold">${fase.faseNummer}</span><div><span class="font-semibold">${fase.titel}:</span> ${fase.omschrijving}</div></li>`).join('')}</ul></div>
+                <div class="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-r-lg"><div class="flex"><div class="flex-shrink-0"><svg class="h-5 w-5 text-amber-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.21 3.03-1.742 3.03H4.42c-1.532 0-2.492-1.696-1.742-3.03l5.58-9.92zM10 13a1 1 0 110-2 1 1 0 010 2zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" /></svg></div><div class="ml-3"><h3 class="text-sm font-semibold text-amber-800">Slimme Waarschuwingen</h3><div class="mt-1 text-sm text-amber-700"><ul class="list-disc list-inside space-y-1">${data.slimmeWaarschuwingen.map(w => `<li>${w}</li>`).join('')}</ul></div></div></div></div>
             `;
             // Toon het plan
             scherm2.classList.add('hidden');
@@ -249,7 +139,6 @@
             scherm3.classList.add('flex');
         }
 
-        // Functie om terug te gaan naar het startscherm
         function startNieuweKlus() {
             scherm3.classList.add('hidden');
             scherm3.classList.remove('flex');
