@@ -3,53 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Slimme Klusassistent MVP</title>
-    <!-- Tailwind CSS voor de styling -->
+    <title>Slimme Klusassistent</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Font 'Inter' voor een moderne, leesbare tekst -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* Basisstijl en font voor de hele app */
-        body {
-            font-family: 'Inter', sans-serif;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
+        body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+        .loader { width: 24px; height: 24px; border: 2px solid #e5e7eb; border-bottom-color: #1f2937; border-radius: 50%; display: inline-block; box-sizing: border-box; animation: rotation 1s linear infinite; }
+        @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .list-item-enter { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { 0% { opacity: 0; transform: translateY(-10px); } 100% { opacity: 1; transform: translateY(0); } }
+        /* Stijl voor de foutmelding-toast */
+        #toast {
+            position: fixed;
+            bottom: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 12px 20px;
+            background-color: #dc2626; /* red-600 */
+            color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transition: bottom 0.5s ease-in-out;
+            z-index: 1000;
         }
-        /* Stijl voor de laad-animatie */
-        .loader {
-            width: 24px;
-            height: 24px;
-            border: 2px solid #e5e7eb; /* gray-200 */
-            border-bottom-color: #1f2937; /* gray-800 */
-            border-radius: 50%;
-            display: inline-block;
-            box-sizing: border-box;
-            animation: rotation 1s linear infinite;
-        }
-        @keyframes rotation {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        #toast.show {
+            bottom: 20px;
         }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900">
 
-    <!-- Scherm 1: Input -->
+    <!-- Scherm 1: Input & Opgeslagen Klussen -->
     <div id="scherm1" class="w-full max-w-md mx-auto h-screen flex flex-col p-4">
         <header class="text-center py-6">
-            <h1 class="text-xl font-semibold text-slate-800">Nieuwe Klus</h1>
+            <h1 class="text-xl font-semibold text-slate-800">Slimme Klusassistent</h1>
         </header>
-        <main class="flex-grow flex flex-col justify-center">
-            <label for="klusInput" class="text-sm font-medium text-slate-700 mb-2">Omschrijving</label>
-            <textarea id="klusInput" class="w-full h-40 p-3 bg-white border border-slate-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-base placeholder:text-slate-400" placeholder="Bijv: Badkamer verbouwen, 9m2, klant wil vloerverwarming en inloopdouche..."></textarea>
-            <div class="text-center my-6">
-                 <button class="w-14 h-14 bg-white border border-slate-300 rounded-full flex items-center justify-center text-2xl shadow-sm hover:bg-slate-100 transition active:scale-95">🎤</button>
+        <main class="flex-grow flex flex-col min-h-0">
+            <div class="mb-4">
+                <label for="klusInput" class="text-sm font-medium text-slate-700 mb-2 block">Nieuwe klus</label>
+                <textarea id="klusInput" class="w-full h-32 p-3 bg-white border border-slate-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-base placeholder:text-slate-400" placeholder="Omschrijf je klus..."></textarea>
+            </div>
+            
+            <div class="flex-grow overflow-y-auto border-t border-slate-200 pt-4">
+                <h2 class="text-sm font-medium text-slate-700 mb-2">Opgeslagen klussen</h2>
+                <div id="opgeslagenKlussenLijst" class="space-y-2">
+                    <!-- Dynamisch gevuld door app.js -->
+                </div>
             </div>
         </main>
-        <footer class="py-4">
-            <button id="planButton" onclick="genereerPlan()" class="w-full bg-slate-900 text-white font-semibold py-3 px-4 rounded-lg shadow-sm hover:bg-slate-800 transition active:scale-95 flex items-center justify-center">
+        <footer class="pt-4">
+            <button id="planButton" class="w-full bg-slate-900 text-white font-semibold py-3 px-4 rounded-lg shadow-sm hover:bg-slate-800 transition active:scale-95 flex items-center justify-center">
                 Maak een slim plan
             </button>
         </footer>
@@ -66,170 +69,21 @@
         <header class="text-center py-6">
             <h1 class="text-xl font-semibold text-slate-800">Jouw Klusplan</h1>
         </header>
-        
-        <main id="planOutput" class="flex-grow space-y-4">
-            <!-- Hier wordt de dynamische content ingeladen -->
-        </main>
-
+        <main id="planOutput" class="flex-grow space-y-4"></main>
         <footer class="py-4 mt-4 space-y-2">
-            <button class="w-full bg-slate-900 text-white font-semibold py-3 px-4 rounded-lg shadow-sm hover:bg-slate-800 transition active:scale-95">
+            <button id="bewaarButton" class="w-full bg-slate-900 text-white font-semibold py-3 px-4 rounded-lg shadow-sm hover:bg-slate-800 transition active:scale-95">
                 Bewaar & sluit
             </button>
-            <button onclick="startNieuweKlus()" class="w-full bg-white text-slate-800 font-semibold py-3 px-4 rounded-lg border border-slate-300 shadow-sm hover:bg-slate-100 transition">
-                Start nieuwe klus
+            <button id="annuleerButton" class="w-full bg-white text-slate-800 font-semibold py-3 px-4 rounded-lg border border-slate-300 shadow-sm hover:bg-slate-100 transition">
+                Annuleren
             </button>
         </footer>
     </div>
 
-    <script>
-        // Elementen selecteren
-        const scherm1 = document.getElementById('scherm1');
-        const scherm2 = document.getElementById('scherm2');
-        const scherm3 = document.getElementById('scherm3');
-        const klusInput = document.getElementById('klusInput');
-        const planButton = document.getElementById('planButton');
-        const planOutput = document.getElementById('planOutput');
+    <!-- Toast Notificatie voor Foutmeldingen -->
+    <div id="toast"></div>
 
-        // De AI-prompt die we hebben ontworpen
-        const systemPrompt = `
-            JOUW ROL & DOEL: Jij bent een hyper-intelligente, ervaren assistent voor zelfstandige vakmensen in de Nederlandse bouw en techniek. Jouw doel is om een korte, vaak ongestructureerde klusomschrijving om te zetten in een helder, praktisch en gestructureerd plan van aanpak. Je bent betrouwbaar, to-the-point en je denkt altijd een stap vooruit.
-            DE GEBRUIKER: De gebruiker is een drukke ZZP'er (timmerman, installateur, etc.). Hij heeft geen tijd voor onzin. Hij wil snel inzicht en overzicht.
-            DE OUTPUT (CRUCIAAL): Jouw antwoord MOET ALTIJD en UITSLUITEND een valide JSON-object zijn. Gebruik de volgende structuur:
-            {
-              "klusTitel": "Korte, pakkende titel voor de klus",
-              "schattingUren": { "min": 0, "max": 0 },
-              "schattingWerkdagen": { "min": 0, "max": 0 },
-              "fasering": [ { "faseNummer": 1, "titel": "Korte titel", "duurDagen": 0, "omschrijving": "Omschrijving van de taken." } ],
-              "slimmeWaarschuwingen": [ "Een praktische tip of waarschuwing.", "Een tweede tip." ]
-            }
-            REGELS: Baseer schattingen op realistische scenario's. De fasering moet logisch en chronologisch zijn. De "slimmeWaarschuwingen" moeten proactief en nuttig zijn. Genereer alléén het JSON-object, zonder extra tekst.
-        `;
-
-        // Functie om het plan te genereren
-        async function genereerPlan() {
-            const userInput = klusInput.value.trim();
-            if (userInput === '') {
-                alert('Omschrijf eerst je klus.');
-                return;
-            }
-
-            // UI updaten naar laadstatus
-            scherm1.classList.add('hidden');
-            scherm2.classList.remove('hidden');
-            scherm2.classList.add('flex');
-            planButton.disabled = true;
-            planButton.innerHTML = '<div class="loader"></div>';
-
-            try {
-                // De Gemini API aanroepen
-                const chatHistory = [
-                    { role: "user", parts: [{ text: systemPrompt + "\n\nGebruiker input: " + userInput }] }
-                ];
-                const payload = { 
-                    contents: chatHistory,
-                    generationConfig: { responseMimeType: "application/json" }
-                };
-                const apiKey = ""; // API key is not needed for gemini-2.0-flash
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-                
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                if (!response.ok) {
-                    throw new Error(`API request failed with status ${response.status}`);
-                }
-                
-                const result = await response.json();
-                
-                if (result.candidates && result.candidates.length > 0 && result.candidates[0].content.parts.length > 0) {
-                    const planData = JSON.parse(result.candidates[0].content.parts[0].text);
-                    toonPlan(planData);
-                } else {
-                    throw new Error("Ongeldig antwoord van de AI.");
-                }
-
-            } catch (error) {
-                console.error("Fout bij het genereren van het plan:", error);
-                alert("Er is iets misgegaan. Probeer het opnieuw.\n" + error.message);
-                startNieuweKlus(); // Reset de UI
-            } finally {
-                // Reset de knop
-                planButton.disabled = false;
-                planButton.innerHTML = 'Maak een slim plan';
-            }
-        }
-
-        // Functie om de ontvangen data in de UI te tonen
-        function toonPlan(data) {
-            planOutput.innerHTML = `
-                <!-- Klustitel Card -->
-                <div class="bg-white p-4 rounded-xl border border-slate-200 animate-fade-in">
-                    <h2 class="text-lg font-semibold">${data.klusTitel}</h2>
-                    <p class="text-sm text-slate-500">Gestructureerd plan op basis van jouw input.</p>
-                </div>
-
-                <!-- Samenvatting Card -->
-                <div class="bg-white p-4 rounded-xl border border-slate-200 animate-fade-in">
-                    <div class="grid grid-cols-2 gap-4 text-center">
-                        <div>
-                            <p class="text-2xl font-bold text-slate-800">${data.schattingUren.min}-${data.schattingUren.max}</p>
-                            <p class="text-sm font-medium text-slate-500">Geschatte uren</p>
-                        </div>
-                        <div>
-                            <p class="text-2xl font-bold text-slate-800">${data.schattingWerkdagen.min}-${data.schattingWerkdagen.max}</p>
-                            <p class="text-sm font-medium text-slate-500">Werkdagen</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Fasering Card -->
-                <div class="bg-white p-4 rounded-xl border border-slate-200 animate-fade-in">
-                    <h3 class="font-semibold mb-3 text-slate-800">Voorgestelde Fasering</h3>
-                    <ul class="space-y-3 text-sm">
-                        ${data.fasering.map(fase => `
-                            <li class="flex items-start">
-                                <span class="mr-3 mt-1 w-4 h-4 text-white text-xs bg-blue-600 rounded-full flex items-center justify-center font-bold">${fase.faseNummer}</span>
-                                <div><span class="font-semibold">${fase.titel}:</span> ${fase.omschrijving}</div>
-                            </li>
-                        `).join('')}
-                    </ul>
-                </div>
-
-                <!-- Waarschuwingen Card -->
-                <div class="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-r-lg animate-fade-in">
-                    <div class="flex">
-                        <div class="flex-shrink-0">
-                            <svg class="h-5 w-5 text-amber-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.21 3.03-1.742 3.03H4.42c-1.532 0-2.492-1.696-1.742-3.03l5.58-9.92zM10 13a1 1 0 110-2 1 1 0 010 2zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
-                        </div>
-                        <div class="ml-3">
-                            <h3 class="text-sm font-semibold text-amber-800">Slimme Waarschuwingen</h3>
-                            <div class="mt-1 text-sm text-amber-700">
-                                <ul class="list-disc list-inside space-y-1">
-                                    ${data.slimmeWaarschuwingen.map(w => `<li>${w}</li>`).join('')}
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            // Toon het plan
-            scherm2.classList.add('hidden');
-            scherm2.classList.remove('flex');
-            scherm3.classList.remove('hidden');
-            scherm3.classList.add('flex');
-        }
-
-        // Functie om terug te gaan naar het startscherm
-        function startNieuweKlus() {
-            scherm3.classList.add('hidden');
-            scherm3.classList.remove('flex');
-            scherm1.classList.remove('hidden');
-            klusInput.value = '';
-            planOutput.innerHTML = '';
-        }
-    </script>
+    <!-- De JavaScript logica wordt nu vanuit een apart bestand geladen -->
+    <script type="module" src="app.js"></script>
 </body>
 </html>
