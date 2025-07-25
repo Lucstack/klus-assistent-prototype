@@ -3,18 +3,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebas
 import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { getFirestore, collection, addDoc, onSnapshot, query, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-// --- Globale Variabelen & UI Elementen ---
-const scherm1 = document.getElementById('scherm1');
-const scherm2 = document.getElementById('scherm2');
-const scherm3 = document.getElementById('scherm3');
-const klusInput = document.getElementById('klusInput');
-const planButton = document.getElementById('planButton');
-const planOutput = document.getElementById('planOutput');
-const bewaarButton = document.getElementById('bewaarButton');
-const annuleerButton = document.getElementById('annuleerButton');
-const opgeslagenKlussenLijst = document.getElementById('opgeslagenKlussenLijst');
-const toast = document.getElementById('toast');
+console.log("app.js: Script geladen.");
 
+// --- Globale Variabelen & UI Elementen ---
+let scherm1, scherm2, scherm3, klusInput, planButton, planOutput, bewaarButton, annuleerButton, opgeslagenKlussenLijst, toast;
 let db, auth;
 let currentPlanData = null;
 let userId, appId; // Globale variabelen voor authenticatie en app ID
@@ -37,6 +29,7 @@ REGELS: Baseer schattingen op realistische scenario's. De fasering moet logisch 
 // --- UI Functies ---
 
 function showToast(message) {
+    if (!toast) return;
     toast.textContent = message;
     toast.classList.add('show');
     setTimeout(() => {
@@ -46,8 +39,11 @@ function showToast(message) {
 
 function toonScherm(schermId) {
     [scherm1, scherm2, scherm3].forEach(s => s.classList.add('hidden'));
-    document.getElementById(schermId).classList.remove('hidden');
-    document.getElementById(schermId).classList.add('flex');
+    const activeScherm = document.getElementById(schermId);
+    if (activeScherm) {
+        activeScherm.classList.remove('hidden');
+        activeScherm.classList.add('flex');
+    }
 }
 
 function startNieuweKlus() {
@@ -60,12 +56,14 @@ function startNieuweKlus() {
 // --- Firebase & Data Functies ---
 
 function listenToKlussen() {
-    if (!db) return; // Doe niets als de database niet is geïnitialiseerd
+    if (!db || !userId) return; 
+    console.log(`Firebase: Luisteren naar klussen voor user ${userId}`);
     const klussenCollection = collection(db, `artifacts/${appId}/users/${userId}/klussen`);
     // We halen de data ongesorteerd op om index-fouten te voorkomen en sorteren het in de code.
     const q = query(klussenCollection);
 
     onSnapshot(q, (snapshot) => {
+        console.log(`Firebase: ${snapshot.size} klussen gevonden.`);
         if (snapshot.empty) {
             opgeslagenKlussenLijst.innerHTML = `<p class="text-slate-500 text-sm text-center py-4">Nog geen klussen opgeslagen.</p>`;
             return;
@@ -177,12 +175,36 @@ function toonPlan(data) {
 
 // --- Initialisatie ---
 
-async function init() {
-    // Koppel event listeners onmiddellijk, zodat de UI altijd reageert.
+function initializeApp() {
+    console.log("initializeApp: Starten...");
+    // Koppel UI elementen aan variabelen
+    scherm1 = document.getElementById('scherm1');
+    scherm2 = document.getElementById('scherm2');
+    scherm3 = document.getElementById('scherm3');
+    klusInput = document.getElementById('klusInput');
+    planButton = document.getElementById('planButton');
+    planOutput = document.getElementById('planOutput');
+    bewaarButton = document.getElementById('bewaarButton');
+    annuleerButton = document.getElementById('annuleerButton');
+    opgeslagenKlussenLijst = document.getElementById('opgeslagenKlussenLijst');
+    toast = document.getElementById('toast');
+
+    // Controleer of alle cruciale elementen bestaan
+    if (!scherm1 || !planButton) {
+        console.error("Cruciale UI elementen niet gevonden. App kan niet starten.");
+        return;
+    }
+
+    // Koppel event listeners onmiddellijk
     planButton.addEventListener('click', genereerPlan);
     bewaarButton.addEventListener('click', bewaarPlan);
     annuleerButton.addEventListener('click', startNieuweKlus);
+    
+    // Start de Firebase connectie
+    connectToFirebase();
+}
 
+async function connectToFirebase() {
     try {
         // Haal configuratie op
         appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
@@ -207,6 +229,8 @@ async function init() {
         }
         
         userId = auth.currentUser.uid;
+        console.log("Firebase: Succesvol ingelogd met userId:", userId);
+        
         // Start met luisteren naar data uit de database
         listenToKlussen();
 
@@ -216,5 +240,5 @@ async function init() {
     }
 }
 
-// Start de applicatie
-init();
+// Wacht tot de HTML volledig is geladen en start dan pas de app
+document.addEventListener('DOMContentLoaded', initializeApp);

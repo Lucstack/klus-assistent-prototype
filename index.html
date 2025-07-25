@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Slimme Klusassistent</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+        .loader { width: 24px; height: 24px; border: 2px solid #e5e7eb; border-bottom-color: #1f2937; border-radius: 50%; display: inline-block; box-sizing: border-box; animation: rotation 1s linear infinite; }
+        @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .list-item-enter { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { 0% { opacity: 0; transform: translateY(-10px); } 100% { opacity: 1; transform: translateY(0); } }
+        /* Stijl voor de foutmelding-toast */
+        #toast {
+            position: fixed;
+            bottom: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 12px 20px;
+            background-color: #dc2626; /* red-600 */
+            color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transition: bottom 0.5s ease-in-out;
+            z-index: 1000;
+        }
+        #toast.show {
+            bottom: 20px;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900">
+
+    <!-- Scherm 1: Input & Opgeslagen Klussen -->
+    <div id="scherm1" class="w-full max-w-md mx-auto h-screen flex flex-col p-4">
+        <header class="text-center py-6">
+            <h1 class="text-xl font-semibold text-slate-800">Slimme Klusassistent</h1>
+        </header>
+        <main class="flex-grow flex flex-col min-h-0">
+            <div class="mb-4">
+                <label for="klusInput" class="text-sm font-medium text-slate-700 mb-2 block">Nieuwe klus</label>
+                <textarea id="klusInput" class="w-full h-32 p-3 bg-white border border-slate-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-base placeholder:text-slate-400" placeholder="Omschrijf je klus..."></textarea>
+            </div>
+            
+            <div class="flex-grow overflow-y-auto border-t border-slate-200 pt-4">
+                <h2 class="text-sm font-medium text-slate-700 mb-2">Opgeslagen klussen</h2>
+                <div id="opgeslagenKlussenLijst" class="space-y-2">
+                    <!-- Dynamisch gevuld door app.js -->
+                </div>
+            </div>
+        </main>
+        <footer class="pt-4">
+            <button id="planButton" class="w-full bg-slate-900 text-white font-semibold py-3 px-4 rounded-lg shadow-sm hover:bg-slate-800 transition active:scale-95 flex items-center justify-center">
+                Maak een slim plan
+            </button>
+        </footer>
+    </div>
+
+    <!-- Scherm 2: Laden -->
+    <div id="scherm2" class="w-full max-w-md mx-auto h-screen flex-col justify-center items-center p-4 hidden">
+        <div class="loader"></div>
+        <p class="mt-4 text-slate-600 font-medium">Plan wordt gegenereerd...</p>
+    </div>
+
+    <!-- Scherm 3: Output -->
+    <div id="scherm3" class="w-full max-w-md mx-auto min-h-screen flex-col p-4 hidden">
+        <header class="text-center py-6">
+            <h1 class="text-xl font-semibold text-slate-800">Jouw Klusplan</h1>
+        </header>
+        <main id="planOutput" class="flex-grow space-y-4"></main>
+        <footer class="py-4 mt-4 space-y-2">
+            <button id="bewaarButton" class="w-full bg-slate-900 text-white font-semibold py-3 px-4 rounded-lg shadow-sm hover:bg-slate-800 transition active:scale-95">
+                Bewaar & sluit
+            </button>
+            <button id="annuleerButton" class="w-full bg-white text-slate-800 font-semibold py-3 px-4 rounded-lg border border-slate-300 shadow-sm hover:bg-slate-100 transition">
+                Annuleren
+            </button>
+        </footer>
+    </div>
+
+    <!-- Toast Notificatie voor Foutmeldingen -->
+    <div id="toast"></div>
+
+    <!-- De JavaScript logica wordt nu vanuit een apart bestand geladen -->
+    <script type="module" src="app.js"></script>
+</body>
+</html>
