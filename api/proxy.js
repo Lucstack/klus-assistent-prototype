@@ -1,7 +1,6 @@
-// Dit is een serverless functie, ontworpen om te draaien op een platform zoals Vercel.
-// Het fungeert als een veilige proxy tussen jouw app en de Google AI API.
-
-import fetch from 'node-fetch';
+// =================================================================
+// PROXY.JS - v3 (Stabiel, zonder externe dependencies)
+// =================================================================
 
 // De AI-prompt staat hier, zodat we hem niet elke keer hoeven mee te sturen vanuit de frontend.
 const systemPrompt = `
@@ -19,22 +18,24 @@ DE OUTPUT (CRUCIAAL): Jouw antwoord MOET ALTIJD en UITSLUITEND een valide JSON-o
 REGELS: Baseer schattingen op realistische scenario's. De fasering moet logisch en chronologisch zijn. De "slimmeWaarschuwingen" moeten proactief en nuttig zijn. De "materialen" lijst moet de belangrijkste benodigde items bevatten. Genereer alléén het JSON-object, zonder extra tekst.
 `;
 
+// De export default handler is de standaard manier om een Vercel serverless functie te definiëren.
 export default async function handler(request, response) {
-  // Log dat de functie is gestart
-  console.log(`Proxy functie aangeroepen met methode: ${request.method}`);
+  // Log dat de functie is gestart in de Vercel logs
+  console.log(`Proxy functie aangeroepen.`);
 
+  // Sta alleen POST-verzoeken toe
   if (request.method !== 'POST') {
     return response.status(405).json({ error: 'Method Not Allowed' });
   }
 
   try {
+    // Haal de userInput uit de body van het verzoek
     const { userInput } = request.body;
     if (!userInput) {
-      console.log('Fout: userInput ontbreekt in het verzoek.');
       return response.status(400).json({ error: 'userInput is verplicht.' });
     }
-    console.log(`Ontvangen userInput: "${userInput}"`);
 
+    // Haal de geheime API-sleutel op uit de Vercel Environment Variables
     const GOOGLE_AI_API_KEY = process.env.GOOGLE_AI_API_KEY;
     if (!GOOGLE_AI_API_KEY) {
       console.error('SERVER FOUT: GOOGLE_AI_API_KEY is niet ingesteld.');
@@ -43,6 +44,7 @@ export default async function handler(request, response) {
         .json({ error: 'Server configuratiefout: API sleutel ontbreekt.' });
     }
 
+    // Stel de payload samen voor de Google AI API
     const chatHistory = [
       {
         role: 'user',
@@ -56,30 +58,25 @@ export default async function handler(request, response) {
 
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GOOGLE_AI_API_KEY}`;
 
-    console.log('Verzoek wordt naar Google AI gestuurd...');
+    // Gebruik de ingebouwde 'fetch' om het verzoek naar Google AI te sturen
     const aiResponse = await fetch(apiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
 
-    console.log(
-      `Antwoord van Google AI ontvangen met status: ${aiResponse.status}`
-    );
+    // Vang de data op
+    const aiData = await aiResponse.json();
 
+    // Als de aanroep naar Google niet succesvol was, stuur de fout door
     if (!aiResponse.ok) {
-      const errorBody = await aiResponse.text();
-      console.error('Fout van Google AI API:', errorBody);
+      console.error('Fout van Google AI API:', aiData);
       return response
         .status(500)
-        .json({
-          error:
-            'Fout bij het aanroepen van de AI. Controleer de API sleutel en het Google project.',
-        });
+        .json({ error: 'Fout bij het aanroepen van de AI.', details: aiData });
     }
 
-    const aiData = await aiResponse.json();
-    console.log('Succesvol antwoord van AI ontvangen.');
+    // Stuur het succesvolle antwoord van de AI terug naar de frontend app
     return response.status(200).json(aiData);
   } catch (error) {
     console.error('Interne serverfout in proxy:', error);
