@@ -1,21 +1,39 @@
 // =================================================================
-// PROXY.JS - v4 (Extra robuust, voor betere foutopsporing)
+// PROXY.JS - v6 (Expert-Prompt met Financiële Intelligentie)
 // =================================================================
 
-// De AI-prompt staat hier, zodat we hem niet elke keer hoeven mee te sturen vanuit de frontend.
+// NIEUWE PROMPT MET INSTRUCTIES VOOR KOSTEN EN UREN PER FASE
 const systemPrompt = `
-JOUW ROL & DOEL: Jij bent een hyper-intelligente, ervaren assistent voor zelfstandige vakmensen in de Nederlandse bouw en techniek. Jouw doel is om een korte, vaak ongestructureerde klusomschrijving om te zetten in een helder, praktisch en gestructureerd plan van aanpak. Je bent betrouwbaar, to-the-point en je denkt altijd een stap vooruit.
-DE GEBRUIKER: De gebruiker is een drukke ZZP'er (timmerman, installateur, etc.). Hij heeft geen tijd voor onzin. Hij wil snel inzicht en overzicht.
-DE OUTPUT (CRUCIAAL): Jouw antwoord MOET ALTIJD en UITSLUITEND een valide JSON-object zijn. Gebruik de volgende structuur:
+JOUW ROL: Jij bent een expert assistent en calculator voor Nederlandse ZZP'ers in de bouw/techniek. Jouw taak is om een klusomschrijving om te zetten in een realistisch, gestructureerd plan INCLUSIEF een financiële schatting.
+
+KERNTAAK: Analyseer de input en genereer een JSON-object. Baseer je analyse op de volgende principes:
+1.  **Uurtarief**: Ga uit van een standaard uurtarief van €55 exclusief BTW voor de ZZP'er.
+2.  **Materiaalkosten**: Maak een realistische inschatting van de materiaalkosten per item. Gebruik actuele Nederlandse marktprijzen.
+3.  **Totaalprijs**: De totaalprijs is de som van (totaal geschatte uren * uurtarief) + (totaal geschatte materiaalkosten). Geef een range (min/max) voor de offerte.
+4.  **Uren per Fase**: De som van de uren per fase moet overeenkomen met de totale urenschatting.
+
+DE OUTPUT MOET ALTIJD EEN VALIDE JSON-OBJECT ZIJN MET DEZE STRUCTuur:
 {
-  "klusTitel": "Korte, pakkende titel voor de klus",
+  "klusTitel": "Een duidelijke, beschrijvende titel voor de klus.",
   "schattingUren": { "min": 0, "max": 0 },
   "schattingWerkdagen": { "min": 0, "max": 0 },
-  "fasering": [ { "faseNummer": 1, "titel": "Korte titel", "duurDagen": 0, "omschrijving": "Omschrijving van de taken." } ],
-  "materialen": [ "Benodigd materiaal 1", "Benodigd materiaal 2" ],
-  "slimmeWaarschuwingen": [ "Een praktische tip of waarschuwing.", "Een tweede tip." ]
+  "aannames": [
+    "Een lijst met aannames die je hebt gemaakt (bijv. 'Aanname: de bestaande fundering is herbruikbaar.')"
+  ],
+  "fasering": [
+    { "faseNummer": 1, "titel": "Fase titel", "duurDagen": 0, "schattingUren": 0, "omschrijving": "Taken in deze fase." }
+  ],
+  "materialen": [
+    { "categorie": "Ru- of Afbouw", "items": [ { "item": "Materiaal 1", "schattingKosten": 0 } ] }
+  ],
+  "slimmeWaarschuwingen": [
+    "Een proactieve waarschuwing over een potentieel risico of knelpunt."
+  ],
+  "schattingPrijsopgave": {
+    "min": 0,
+    "max": 0
+  }
 }
-REGELS: Baseer schattingen op realistische scenario's. De fasering moet logisch en chronologisch zijn. De "slimmeWaarschuwingen" moeten proactief en nuttig zijn. De "materialen" lijst moet de belangrijkste benodigde items bevatten. Genereer alléén het JSON-object, zonder extra tekst.
 `;
 
 export default async function handler(request, response) {
@@ -59,25 +77,19 @@ export default async function handler(request, response) {
       body: JSON.stringify(payload),
     });
 
-    // Verbeterde foutafhandeling: controleer de status VOORDAT je de body leest.
+    const aiData = await aiResponse.json();
+
     if (!aiResponse.ok) {
-      // Probeer de foutmelding van Google te lezen voor meer details.
-      const errorText = await aiResponse.text();
       console.error(
-        `[FOUT] Fout van Google AI API (Status: ${aiResponse.status}): ${errorText}`
+        `[FOUT] Fout van Google AI API (Status: ${aiResponse.status}):`,
+        aiData
       );
       return response
         .status(500)
-        .json({
-          error: 'Fout bij het aanroepen van de AI.',
-          details: errorText,
-        });
+        .json({ error: 'Fout bij het aanroepen van de AI.', details: aiData });
     }
 
-    const aiData = await aiResponse.json();
     console.log('[LOG] Succesvol antwoord van AI ontvangen.');
-
-    // Stuur het succesvolle antwoord terug naar de frontend.
     return response.status(200).json(aiData);
   } catch (error) {
     console.error('[FOUT] Interne serverfout in proxy:', error);
