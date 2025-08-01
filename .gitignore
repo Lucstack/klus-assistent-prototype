@@ -1,6 +1,0 @@
-.vercel
-# Negeer lokale omgevingsvariabelen
-.env.local
-
-# Negeer de node_modules map
-node_modules

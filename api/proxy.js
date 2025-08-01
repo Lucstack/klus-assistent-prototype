@@ -1,87 +1,71 @@
+import { promises as fs } from 'fs';
+import path from 'path';
+
 // =================================================================
-// PROXY.JS - v6 (Expert-Prompt met Financiële Intelligentie)
+// PROXY.JS - v8 (Enhanced Logging)
 // =================================================================
 
-// NIEUWE PROMPT MET INSTRUCTIES VOOR KOSTEN EN UREN PER FASE
-const systemPrompt = `
-JOUW ROL: Jij bent een expert assistent en calculator voor Nederlandse ZZP'ers in de bouw/techniek. Jouw taak is om een klusomschrijving om te zetten in een realistisch, gestructureerd plan INCLUSIEF een financiële schatting.
-
-KERNTAAK: Analyseer de input en genereer een JSON-object. Baseer je analyse op de volgende principes:
-1.  **Uurtarief**: Ga uit van een standaard uurtarief van €55 exclusief BTW voor de ZZP'er.
-2.  **Materiaalkosten**: Maak een realistische inschatting van de materiaalkosten per item. Gebruik actuele Nederlandse marktprijzen.
-3.  **Totaalprijs**: De totaalprijs is de som van (totaal geschatte uren * uurtarief) + (totaal geschatte materiaalkosten). Geef een range (min/max) voor de offerte.
-4.  **Uren per Fase**: De som van de uren per fase moet overeenkomen met de totale urenschatting.
-
-DE OUTPUT MOET ALTIJD EEN VALIDE JSON-OBJECT ZIJN MET DEZE STRUCTuur:
-{
-  "klusTitel": "Een duidelijke, beschrijvende titel voor de klus.",
-  "schattingUren": { "min": 0, "max": 0 },
-  "schattingWerkdagen": { "min": 0, "max": 0 },
-  "aannames": [
-    "Een lijst met aannames die je hebt gemaakt (bijv. 'Aanname: de bestaande fundering is herbruikbaar.')"
-  ],
-  "fasering": [
-    { "faseNummer": 1, "titel": "Fase titel", "duurDagen": 0, "schattingUren": 0, "omschrijving": "Taken in deze fase." }
-  ],
-  "materialen": [
-    { "categorie": "Ru- of Afbouw", "items": [ { "item": "Materiaal 1", "schattingKosten": 0 } ] }
-  ],
-  "slimmeWaarschuwingen": [
-    "Een proactieve waarschuwing over een potentieel risico of knelpunt."
-  ],
-  "schattingPrijsopgave": {
-    "min": 0,
-    "max": 0
-  }
+async function getSystemPrompt() {
+  const filePath = path.join(process.cwd(), 'api', 'system_prompt.txt');
+  return fs.readFile(filePath, 'utf-8');
 }
-`;
 
 export default async function handler(request, response) {
-  console.log(`[LOG] Proxy functie gestart.`);
+  console.log('[LOG] Backend handler started.');
 
   if (request.method !== 'POST') {
+    console.log(`[LOG] Method not allowed: ${request.method}`);
     return response.status(405).json({ error: 'Method Not Allowed' });
   }
 
   try {
+    console.log('[LOG] Parsing request body...');
     const { userInput } = request.body;
     if (!userInput) {
+      console.error('[FOUT] userInput is missing from the request body.');
       return response.status(400).json({ error: 'userInput is verplicht.' });
     }
+    console.log(`[LOG] Received userInput: "${userInput.substring(0, 50)}..."`);
 
     const GOOGLE_AI_API_KEY = process.env.GOOGLE_AI_API_KEY;
     if (!GOOGLE_AI_API_KEY) {
-      console.error('[FOUT] GOOGLE_AI_API_KEY is niet ingesteld op de server.');
+      console.error('[FOUT] GOOGLE_AI_API_KEY is not set on the server.');
       return response
         .status(500)
         .json({ error: 'Server configuratiefout: API sleutel ontbreekt.' });
     }
+    console.log('[LOG] GOOGLE_AI_API_KEY is present.');
 
-    const chatHistory = [
-      {
-        role: 'user',
-        parts: [{ text: systemPrompt + '\n\nGebruiker input: ' + userInput }],
-      },
-    ];
+    console.log('[LOG] Reading system prompt...');
+    const systemPrompt = await getSystemPrompt();
+    console.log('[LOG] System prompt loaded successfully.');
+
     const payload = {
-      contents: chatHistory,
+      contents: [
+        {
+          role: 'user',
+          parts: [{ text: systemPrompt + '\n\nGebruiker input: ' + userInput }],
+        },
+      ],
       generationConfig: { responseMimeType: 'application/json' },
     };
+    console.log('[LOG] Payload for Google AI API is constructed.');
 
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GOOGLE_AI_API_KEY}`;
 
-    console.log('[LOG] Verzoek wordt naar Google AI gestuurd...');
+    console.log('[LOG] Sending request to Google AI API...');
     const aiResponse = await fetch(apiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
+    console.log(`[LOG] Received response from Google AI API with status: ${aiResponse.status}`);
 
     const aiData = await aiResponse.json();
 
     if (!aiResponse.ok) {
       console.error(
-        `[FOUT] Fout van Google AI API (Status: ${aiResponse.status}):`,
+        `[FOUT] Google AI API returned an error (Status: ${aiResponse.status}):`,
         aiData
       );
       return response
@@ -89,10 +73,11 @@ export default async function handler(request, response) {
         .json({ error: 'Fout bij het aanroepen van de AI.', details: aiData });
     }
 
-    console.log('[LOG] Succesvol antwoord van AI ontvangen.');
+    console.log('[LOG] AI response is valid JSON. Sending back to client.');
     return response.status(200).json(aiData);
+
   } catch (error) {
-    console.error('[FOUT] Interne serverfout in proxy:', error);
+    console.error('[FATALE FOUT] An unexpected error occurred in the proxy handler:', error);
     return response
       .status(500)
       .json({ error: 'Er is een onverwachte fout opgetreden in de proxy.' });
