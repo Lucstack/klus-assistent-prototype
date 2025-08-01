@@ -4,7 +4,6 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Slimme Klusassistent</title>
-    <!-- We use the Tailwind CSS CDN to load styles directly, removing the need for a complex build setup. -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -12,6 +11,23 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
+    <!-- 
+      FIX: Tailwind CSS JIT Safelist
+    -->
+    <style class="hidden">
+      .bg-blue-200.text-blue-900 {
+      }
+      .bg-green-200.text-green-900 {
+      }
+      .bg-yellow-200.text-yellow-900 {
+      }
+      .bg-purple-200.text-purple-900 {
+      }
+      .bg-pink-200.text-pink-900 {
+      }
+      .bg-indigo-200.text-indigo-900 {
+      }
+    </style>
     <style>
       body {
         font-family: 'Inter', sans-serif;
@@ -36,19 +52,6 @@
           transform: rotate(360deg);
         }
       }
-      .list-item-enter {
-        animation: fadeIn 0.3s ease-out;
-      }
-      @keyframes fadeIn {
-        0% {
-          opacity: 0;
-          transform: translateY(-10px);
-        }
-        100% {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
       #toast {
         position: fixed;
         bottom: -100px;
@@ -64,56 +67,117 @@
       #toast.show {
         bottom: 20px;
       }
+      .hidden {
+        display: none;
+      }
+      .flex {
+        display: flex;
+      }
+      .modal-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2000;
+      }
+      .calendar-grid {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 1px;
+      }
+      .calendar-day {
+        min-height: 90px;
+        display: flex;
+        flex-direction: column;
+      }
+      .calendar-job {
+        font-size: 11px;
+        padding: 2px 5px;
+        border-radius: 4px;
+        margin-top: 3px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        border: 1px solid rgba(0, 0, 0, 0.05);
+      }
+      textarea {
+        resize: none;
+        overflow-y: hidden;
+      }
+      #documentContent {
+        white-space: pre-wrap;
+      }
     </style>
   </head>
   <body class="bg-slate-50 text-slate-900">
-    <!-- Scherm 1: Input & Opgeslagen Klussen -->
+    <!-- Scherm 1: Dashboard -->
     <div
       id="scherm1"
-      class="w-full max-w-md mx-auto h-screen flex flex-col p-4"
+      class="w-full max-w-2xl mx-auto h-screen flex flex-col p-4"
     >
       <header class="text-center py-6 flex-shrink-0">
-        <h1 class="text-xl font-semibold text-slate-800">
-          Slimme Klusassistent
-        </h1>
+        <h1 class="text-2xl font-bold text-slate-800">Klus Dashboard</h1>
       </header>
-
       <main class="flex-grow flex flex-col min-h-0">
-        <div class="mb-4 flex-shrink-0">
-          <label
-            for="klusInput"
-            class="text-sm font-medium text-slate-700 mb-2 block"
-            >Nieuwe klus</label
+        <div class="mb-6 flex-shrink-0 grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <button
+            id="nieuweKlusKnop"
+            class="w-full bg-slate-900 text-white font-semibold py-3 px-4 rounded-lg shadow-sm hover:bg-slate-800 transition"
           >
-          <textarea
-            id="klusInput"
-            class="w-full h-32 p-3 bg-white border border-slate-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-base placeholder:text-slate-400"
-            placeholder="Omschrijf je klus..."
-          ></textarea>
-          <p class="text-xs text-slate-500 mt-2 text-center">
-            Tip: gebruik de microfoon op je mobiele toetsenbord voor
-            spraak-naar-tekst.
-          </p>
+            Nieuwe Klus
+          </button>
+          <button
+            id="vandaagKnop"
+            class="w-full bg-green-600 text-white font-semibold py-3 px-4 rounded-lg shadow-sm hover:bg-green-700 transition"
+          >
+            Check-in Vandaag
+          </button>
+          <button
+            id="planningKnop"
+            class="w-full bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg shadow-sm hover:bg-blue-700 transition"
+          >
+            Kalender
+          </button>
         </div>
+        <div id="dashboard" class="flex-grow overflow-y-auto space-y-6"></div>
+      </main>
+    </div>
 
-        <div class="flex-grow overflow-y-auto border-t border-slate-200 pt-4">
-          <h2 class="text-sm font-medium text-slate-700 mb-2">
-            Opgeslagen klussen
-          </h2>
-          <div id="opgeslagenKlussenLijst" class="space-y-2">
-            <!-- Dynamisch gevuld -->
-          </div>
+    <!-- Scherm 1.5: Nieuwe Klus Input -->
+    <div
+      id="scherm1_5"
+      class="w-full max-w-md mx-auto h-screen flex-col p-4 hidden"
+    >
+      <header class="text-center py-6 flex-shrink-0">
+        <h1 class="text-xl font-semibold">Nieuwe Klus</h1>
+      </header>
+      <main class="flex-grow flex flex-col min-h-0">
+        <textarea
+          id="klusInput"
+          class="w-full p-3 bg-white border rounded-lg shadow-sm"
+          placeholder="Omschrijf de klus..."
+          rows="4"
+        ></textarea>
+        <div class="pt-4 flex-shrink-0 space-y-2">
+          <button
+            id="planButton"
+            class="w-full bg-slate-900 text-white font-semibold py-3 px-4 rounded-lg shadow-sm"
+          >
+            Maak Plan
+          </button>
+          <button
+            id="terugNaarDashboardButton"
+            class="w-full bg-white text-slate-800 font-semibold py-3 px-4 rounded-lg border"
+          >
+            Terug
+          </button>
         </div>
       </main>
-
-      <footer class="pt-4 flex-shrink-0">
-        <button
-          id="planButton"
-          class="w-full bg-slate-900 text-white font-semibold py-3 px-4 rounded-lg shadow-sm hover:bg-slate-800 transition active:scale-95 flex items-center justify-center"
-        >
-          Maak een slim plan
-        </button>
-      </footer>
     </div>
 
     <!-- Scherm 2: Laden -->
@@ -122,327 +186,839 @@
       class="w-full max-w-md mx-auto h-screen flex-col justify-center items-center p-4 hidden"
     >
       <div class="loader"></div>
-      <p class="mt-4 text-slate-600 font-medium">Plan wordt gegenereerd...</p>
+      <p class="mt-4">Plan wordt gemaakt...</p>
     </div>
 
     <!-- Scherm 3: Output -->
     <div
       id="scherm3"
-      class="w-full max-w-md mx-auto min-h-screen flex flex-col p-4"
+      class="w-full max-w-md mx-auto min-h-screen flex flex-col p-4 hidden"
     >
       <header class="text-center py-6 flex-shrink-0">
-        <h1 class="text-xl font-semibold text-slate-800">Jouw Klusplan</h1>
+        <h1 class="text-xl font-semibold">Jouw Klusplan</h1>
       </header>
       <main id="planOutput" class="flex-grow space-y-4 overflow-y-auto"></main>
-      <footer class="py-4 mt-4 space-y-2 flex-shrink-0">
+      <footer
+        id="planFooter"
+        class="py-4 mt-4 space-y-2 flex-shrink-0"
+      ></footer>
+    </div>
+
+    <!-- Scherm 4: Today View / Daily Check-in -->
+    <div
+      id="scherm4"
+      class="w-full max-w-2xl mx-auto h-screen flex flex-col p-4 hidden"
+    >
+      <header class="text-center py-6 flex-shrink-0">
+        <h1 class="text-2xl font-bold text-slate-800" id="vandaagHeader"></h1>
+      </header>
+      <main
+        id="vandaagOutput"
+        class="flex-grow overflow-y-auto space-y-6"
+      ></main>
+      <footer class="pt-4 flex-shrink-0">
         <button
-          id="bewaarButton"
-          class="w-full bg-slate-900 text-white font-semibold py-3 px-4 rounded-lg shadow-sm hover:bg-slate-800 transition active:scale-95"
+          id="terugVanVandaagButton"
+          class="w-full bg-slate-900 text-white font-semibold py-3 px-4 rounded-lg shadow-sm"
         >
-          Bewaar & sluit
-        </button>
-        <button
-          id="annuleerButton"
-          class="w-full bg-white text-slate-800 font-semibold py-3 px-4 rounded-lg border border-slate-300 shadow-sm hover:bg-slate-100 transition"
-        >
-          Annuleren
+          Terug naar Dashboard
         </button>
       </footer>
     </div>
 
-    <!-- Toast Notificatie -->
+    <!-- Scherm 5: Calendar View -->
+    <div
+      id="scherm5"
+      class="w-full max-w-4xl mx-auto h-screen flex flex-col p-2 sm:p-4 hidden"
+    >
+      <header
+        class="text-center py-4 flex-shrink-0 flex items-center justify-between"
+      >
+        <button id="prevMonthBtn" class="p-2 rounded-full hover:bg-slate-200">
+          &lt;
+        </button>
+        <h1 id="calendarMonthYear" class="text-xl font-bold"></h1>
+        <button id="nextMonthBtn" class="p-2 rounded-full hover:bg-slate-200">
+          &gt;
+        </button>
+      </header>
+      <div
+        class="calendar-grid text-xs sm:text-sm font-semibold text-center text-slate-600 pb-2"
+      >
+        <div>Zo</div>
+        <div>Ma</div>
+        <div>Di</div>
+        <div>Wo</div>
+        <div>Do</div>
+        <div>Vr</div>
+        <div>Za</div>
+      </div>
+      <main
+        id="calendarGrid"
+        class="flex-grow overflow-y-auto calendar-grid bg-slate-200 rounded-lg"
+      ></main>
+      <footer class="pt-4 flex-shrink-0">
+        <button
+          id="terugVanPlanningButton"
+          class="w-full bg-slate-900 text-white font-semibold py-3 px-4 rounded-lg shadow-sm"
+        >
+          Terug naar Dashboard
+        </button>
+      </footer>
+    </div>
+
+    <!-- NEW Scherm 6: Document View (Offerte/Materialen) -->
+    <div
+      id="scherm6"
+      class="w-full max-w-2xl mx-auto h-screen flex flex-col p-4 hidden"
+    >
+      <header class="text-center py-6 flex-shrink-0">
+        <h1 id="documentTitle" class="text-2xl font-bold text-slate-800"></h1>
+      </header>
+      <main class="flex-grow overflow-y-auto bg-white p-4 rounded-lg border">
+        <pre id="documentContent" class="font-sans text-sm"></pre>
+      </main>
+      <footer class="pt-4 flex-shrink-0 grid grid-cols-2 gap-2">
+        <button
+          id="copyDocButton"
+          class="w-full bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg shadow-sm"
+        >
+          Kopieer Tekst
+        </button>
+        <button
+          id="terugVanDocButton"
+          class="w-full bg-slate-900 text-white font-semibold py-3 px-4 rounded-lg shadow-sm"
+        >
+          Terug naar Plan
+        </button>
+      </footer>
+    </div>
+
+    <!-- Modals -->
+    <div id="startDateModal" class="modal-backdrop hidden">
+      <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm mx-4">
+        <h3 class="text-lg font-semibold mb-2">Wanneer start dit project?</h3>
+        <p id="nextAvailableDate" class="text-sm text-slate-600 mb-4"></p>
+        <input
+          type="date"
+          id="dateInput"
+          class="w-full p-2 border rounded-md mb-4"
+        />
+        <div class="flex justify-end space-x-2">
+          <button
+            id="cancelDateButton"
+            class="px-4 py-2 bg-gray-200 rounded-md"
+          >
+            Annuleren
+          </button>
+          <button
+            id="saveDateButton"
+            class="px-4 py-2 bg-blue-600 text-white rounded-md"
+          >
+            Opslaan
+          </button>
+        </div>
+      </div>
+    </div>
     <div id="toast"></div>
 
     <script type="module">
       // =================================================================
-      // KLUSASSISTENT APP - v8 (LocalStorage Versie)
+      // KLUSASSISTENT APP - v18 (Error Fix & Stability)
       // =================================================================
 
-      // --- Globale Variabelen ---
-      let currentPlanData = null;
-      let opgeslagenKlussen = [];
+      let currentPlanData = null,
+        opgeslagenKlussen = [],
+        currentKlusId = null;
+      let calendarDate = new Date();
 
-      // --- Hoofdfunctie ---
+      const ui = {
+        scherm1: document.getElementById('scherm1'),
+        scherm1_5: document.getElementById('scherm1_5'),
+        scherm2: document.getElementById('scherm2'),
+        scherm3: document.getElementById('scherm3'),
+        scherm4: document.getElementById('scherm4'),
+        scherm5: document.getElementById('scherm5'),
+        scherm6: document.getElementById('scherm6'),
+
+        nieuweKlusKnop: document.getElementById('nieuweKlusKnop'),
+        terugNaarDashboardButton: document.getElementById(
+          'terugNaarDashboardButton'
+        ),
+        planningKnop: document.getElementById('planningKnop'),
+        vandaagKnop: document.getElementById('vandaagKnop'),
+        terugVanVandaagButton: document.getElementById('terugVanVandaagButton'),
+        terugVanPlanningButton: document.getElementById(
+          'terugVanPlanningButton'
+        ),
+        terugVanDocButton: document.getElementById('terugVanDocButton'),
+
+        dashboard: document.getElementById('dashboard'),
+        klusInput: document.getElementById('klusInput'),
+        planButton: document.getElementById('planButton'),
+        planOutput: document.getElementById('planOutput'),
+        planFooter: document.getElementById('planFooter'),
+        vandaagHeader: document.getElementById('vandaagHeader'),
+        vandaagOutput: document.getElementById('vandaagOutput'),
+        toast: document.getElementById('toast'),
+
+        startDateModal: document.getElementById('startDateModal'),
+        nextAvailableDate: document.getElementById('nextAvailableDate'),
+        dateInput: document.getElementById('dateInput'),
+        saveDateButton: document.getElementById('saveDateButton'),
+        cancelDateButton: document.getElementById('cancelDateButton'),
+
+        calendarGrid: document.getElementById('calendarGrid'),
+        calendarMonthYear: document.getElementById('calendarMonthYear'),
+        prevMonthBtn: document.getElementById('prevMonthBtn'),
+        nextMonthBtn: document.getElementById('nextMonthBtn'),
+
+        documentTitle: document.getElementById('documentTitle'),
+        documentContent: document.getElementById('documentContent'),
+        copyDocButton: document.getElementById('copyDocButton'),
+      };
+
+      const statusDisplay = {
+        Draft: { text: 'Concept', color: 'bg-gray-200 text-gray-800' },
+        Proposal: { text: 'Offerte', color: 'bg-blue-200 text-blue-800' },
+        Won: { text: 'Actief', color: 'bg-green-200 text-green-800' },
+        Lost: { text: 'Verloren', color: 'bg-red-200 text-red-800' },
+        Completed: { text: 'Afgerond', color: 'bg-purple-200 text-purple-800' },
+      };
+
+      const jobCalendarColors = [
+        'bg-blue-200 text-blue-900',
+        'bg-green-200 text-green-900',
+        'bg-yellow-200 text-yellow-900',
+        'bg-purple-200 text-purple-900',
+        'bg-pink-200 text-pink-900',
+        'bg-indigo-200 text-indigo-900',
+      ];
+
       function main() {
-        const ui = {
-          scherm1: document.getElementById('scherm1'),
-          scherm2: document.getElementById('scherm2'),
-          scherm3: document.getElementById('scherm3'),
-          klusInput: document.getElementById('klusInput'),
-          planButton: document.getElementById('planButton'),
-          planOutput: document.getElementById('planOutput'),
-          bewaarButton: document.getElementById('bewaarButton'),
-          annuleerButton: document.getElementById('annuleerButton'),
-          opgeslagenKlussenLijst: document.getElementById(
-            'opgeslagenKlussenLijst'
-          ),
-          toast: document.getElementById('toast'),
-        };
-
-        const showToast = (message, isError = true) => {
+        const showToast = (message, isError = false) => {
           ui.toast.textContent = message;
           ui.toast.style.backgroundColor = isError ? '#dc2626' : '#22c55e';
           ui.toast.classList.add('show');
-          setTimeout(() => {
-            ui.toast.classList.remove('show');
-          }, 3000);
+          setTimeout(() => ui.toast.classList.remove('show'), 3000);
         };
 
         const toonScherm = schermId => {
-          [ui.scherm1, ui.scherm2, ui.scherm3].forEach(s =>
-            s.classList.add('hidden')
-          );
+          Object.keys(ui)
+            .filter(k => k.startsWith('scherm'))
+            .forEach(key => ui[key].classList.add('hidden'));
           document.getElementById(schermId).classList.remove('hidden');
           document.getElementById(schermId).classList.add('flex');
         };
 
-        const startNieuweKlus = () => {
+        const showDashboard = () => {
           toonScherm('scherm1');
-          ui.klusInput.value = '';
-          ui.planOutput.innerHTML = '';
-          currentPlanData = null;
-          ui.bewaarButton.classList.remove('hidden');
-          ui.annuleerButton.textContent = 'Annuleren';
           loadOpgeslagenKlussen();
+        };
+        const startNieuweKlusFlow = () => toonScherm('scherm1_5');
+        const showCalendar = () => {
+          calendarDate = new Date();
+          renderCalendar();
+          toonScherm('scherm5');
         };
 
         const genereerPlan = async () => {
-          const userInput = ui.klusInput.value.trim();
-          if (userInput === '') {
-            showToast('Omschrijf eerst je klus.');
-            return;
-          }
+          if (ui.klusInput.value.trim() === '')
+            return showToast('Omschrijf eerst je klus.', true);
           toonScherm('scherm2');
           ui.planButton.disabled = true;
           ui.planButton.innerHTML = '<div class="loader"></div>';
-
           try {
-            const apiUrl = '/api/proxy';
-            const payload = { userInput: userInput };
-
-            const response = await fetch(apiUrl, {
+            const response = await fetch('/api/proxy', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(payload),
+              body: JSON.stringify({ userInput: ui.klusInput.value.trim() }),
             });
-
-            if (!response.ok) {
-              const errorData = await response.json();
-              throw new Error(
-                errorData.error || `Serverfout: ${response.status}`
-              );
-            }
-
+            if (!response.ok)
+              throw new Error((await response.json()).error || 'Serverfout');
             const result = await response.json();
-
-            if (
-              result.candidates &&
-              result.candidates[0].content.parts.length > 0
-            ) {
+            if (result.candidates?.[0]?.content.parts.length > 0) {
               currentPlanData = JSON.parse(
                 result.candidates[0].content.parts[0].text
               );
-              currentPlanData.userInput = userInput;
-              currentPlanData.status = 'Draft'; // Add status to new plan
-              toonPlan(currentPlanData);
-            } else {
-              throw new Error('Ongeldig antwoord van de AI.');
-            }
+              currentPlanData.status = 'Draft';
+              toonPlan(currentPlanData, false);
+            } else throw new Error('Ongeldig antwoord van de AI.');
           } catch (error) {
-            console.error('Fout bij genereren:', error);
-            showToast(error.message);
-            startNieuweKlus();
+            showToast(error.message, true);
+            showDashboard();
           } finally {
             ui.planButton.disabled = false;
-            ui.planButton.innerHTML = 'Maak een slim plan';
+            ui.planButton.innerHTML = 'Maak Plan';
           }
         };
 
-        const toonPlan = (data, isViewing = false) => {
-          const materialenHTML =
-            data.materialen && data.materialen.length > 0
-              ? `
-                    <div class="bg-white p-4 rounded-xl border border-slate-200">
-                        <h3 class="font-semibold mb-3 text-slate-800">Benodigde Materialen</h3>
-                        <div class="space-y-3">
-                            ${data.materialen
-                              .map(
-                                cat => `
-                                <div>
-                                    <h4 class="font-medium text-sm text-slate-600">${
-                                      cat.categorie
-                                    }</h4>
-                                    <ul class="space-y-1 text-sm list-disc list-inside pl-2">
-                                        ${cat.items
-                                          .map(
-                                            item =>
-                                              `<li>${item.item} <span class="text-slate-500">(schatting: €${item.schattingKosten})</span></li>`
-                                          )
-                                          .join('')}
-                                    </ul>
-                                </div>
-                            `
-                              )
-                              .join('')}
-                        </div>
-                    </div>
-                `
-              : '';
+        const toonPlan = (data, isViewing) => {
+          if (!data) {
+            showToast('Fout: kan plan niet laden.', true);
+            return showDashboard();
+          }
+          const getRange = range =>
+            range ? `${range.min}-${range.max}` : 'N/A';
 
-          const aannamesHTML =
-            data.aannames && data.aannames.length > 0
-              ? `
-                    <div class="bg-white p-4 rounded-xl border border-slate-200">
-                        <h3 class="font-semibold mb-3 text-slate-800">Aannames</h3>
-                        <ul class="space-y-1 text-sm list-disc list-inside">
-                            ${data.aannames
-                              .map(item => `<li>${item}</li>`)
-                              .join('')}
-                        </ul>
-                    </div>
-                `
-              : '';
+          const nextDate = getNextAvailableDate();
+          const nextDateHTML = isViewing
+            ? ''
+            : `<div class="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-lg"><h3 class="font-semibold text-blue-800">Volgende Mogelijke Startdatum</h3><p class="text-blue-900">${nextDate.toLocaleDateString(
+                'nl-NL',
+                { weekday: 'long', day: 'numeric', month: 'long' }
+              )}</p></div>`;
 
-          const prijsopgaveHTML = data.schattingPrijsopgave
-            ? `
-                    <div class="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-lg">
-                        <h3 class="font-bold text-blue-800">Geschatte Prijsopgave (excl. BTW)</h3>
-                        <p class="text-2xl font-bold text-blue-900 mt-1">€${data.schattingPrijsopgave.min} - €${data.schattingPrijsopgave.max}</p>
-                        <p class="text-xs text-slate-500 mt-1">Gebaseerd op geschatte uren en materiaalkosten.</p>
-                    </div>
-                `
-            : '';
-
-          const getRange = (range) => (range ? `${range.min}-${range.max}` : 'N/A');
+          ui.planOutput.innerHTML = `${nextDateHTML}<div class="bg-white p-4 rounded-xl border"><h2 class="text-lg font-semibold">${
+            data.klusTitel
+          }</h2></div><div class="bg-white p-4 rounded-xl border"><div class="grid grid-cols-2 gap-4 text-center"><div><p class="text-2xl font-bold">${getRange(
+            data.schattingUren
+          )}</p><p>Uren</p></div><div><p class="text-2xl font-bold">${getRange(
+            data.schattingWerkdagen
+          )}</p><p>Dagen</p></div></div></div><div class="bg-white p-4 rounded-xl border"><h3 class="font-semibold mb-3">Fasering</h3><ul class="space-y-3 text-sm">${(
+            data.fasering || []
+          )
+            .map(
+              f =>
+                `<li class="flex items-start"><span class="mr-3 mt-1 w-4 h-4 text-white text-xs bg-blue-600 rounded-full flex items-center justify-center font-bold">${f.faseNummer}</span><div><span class="font-semibold">${f.titel}</span>: ${f.omschrijving}</div></li>`
+            )
+            .join('')}</ul></div>`;
 
           let actieKnoppenHTML = '';
           if (isViewing) {
             switch (data.status) {
               case 'Draft':
-                actieKnoppenHTML = `<button id="maakOfferteButton" class="w-full bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg shadow-sm hover:bg-blue-700 transition">Maak Offerte</button>`;
+                actieKnoppenHTML = `<button id="maakOfferteButton" class="w-full bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg">Maak Offerte</button>`;
                 break;
               case 'Proposal':
                 actieKnoppenHTML = `
-                  <div class="grid grid-cols-2 gap-2">
-                    <button id="opdrachtGewonnenButton" class="w-full bg-green-600 text-white font-semibold py-3 px-4 rounded-lg shadow-sm hover:bg-green-700 transition">Opdracht Gewonnen</button>
-                    <button id="opdrachtVerlorenButton" class="w-full bg-red-600 text-white font-semibold py-3 px-4 rounded-lg shadow-sm hover:bg-red-700 transition">Opdracht Verloren</button>
+                  <button id="genereerOfferteButton" class="w-full bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg">Genereer Offerte</button>
+                  <div class="grid grid-cols-2 gap-2 mt-2">
+                      <button id="opdrachtGewonnenButton" class="w-full bg-green-600 text-white font-semibold py-3 px-4 rounded-lg">Opdracht Gewonnen</button>
+                      <button id="opdrachtVerlorenButton" class="w-full bg-red-600 text-white font-semibold py-3 px-4 rounded-lg">Opdracht Verloren</button>
                   </div>`;
                 break;
               case 'Won':
-                actieKnoppenHTML = `<button id="projectAfrondenButton" class="w-full bg-gray-600 text-white font-semibold py-3 px-4 rounded-lg shadow-sm hover:bg-gray-700 transition">Project Afronden</button>`;
+                actieKnoppenHTML = `
+                  <div class="grid grid-cols-2 gap-2">
+                      <button id="genereerOfferteButton" class="w-full bg-blue-600 text-white font-semibold py-2 px-3 rounded-lg">Bekijk Offerte</button>
+                      <button id="genereerMateriaalButton" class="w-full bg-yellow-500 text-white font-semibold py-2 px-3 rounded-lg">Materiaal Lijst</button>
+                  </div>
+                  <button id="projectAfrondenButton" class="w-full bg-purple-600 text-white font-semibold py-3 px-4 rounded-lg mt-2">Project Afronden</button>`;
                 break;
             }
           }
+          ui.planFooter.innerHTML = `${actieKnoppenHTML}<button id="bewaarButton" class="w-full bg-slate-900 text-white font-semibold py-3 px-4 rounded-lg ${
+            isViewing ? 'hidden' : ''
+          }">Bewaar & sluit</button><button id="annuleerButton" class="w-full bg-white text-slate-800 font-semibold py-3 px-4 rounded-lg border">Terug</button>`;
 
-          ui.planOutput.innerHTML = `
-                    <div class="bg-white p-4 rounded-xl border border-slate-200"><h2 class="text-lg font-semibold">${
-                      data.klusTitel || 'Onbekende Klus'
-                    }</h2><p class="text-sm text-slate-500">Gestructureerd plan op basis van jouw input.</p></div>
-                    <div class="bg-white p-4 rounded-xl border border-slate-200"><div class="grid grid-cols-2 gap-4 text-center"><div><p class="text-2xl font-bold">${
-                      getRange(data.schattingUren)
-                    }</p><p class="text-sm font-medium text-slate-500">Geschatte uren</p></div><div><p class="text-2xl font-bold">${
-            getRange(data.schattingWerkdagen)
-          }</p><p class="text-sm font-medium text-slate-500">Werkdagen</p></div></div></div>
-                    ${aannamesHTML}
-                    <div class="bg-white p-4 rounded-xl border border-slate-200"><h3 class="font-semibold mb-3">Voorgestelde Fasering</h3><ul class="space-y-3 text-sm">${(data.fasering || [])
-                      .map(
-                        f =>
-                          `<li class="flex items-start"><span class="mr-3 mt-1 w-4 h-4 text-white text-xs bg-blue-600 rounded-full flex items-center justify-center font-bold">${f.faseNummer}</span><div><span class="font-semibold">${f.titel}</span> <span class="text-slate-500">(~${f.schattingUren} uur)</span>: ${f.omschrijving}</div></li>`
-                      )
-                      .join('')}</ul></div>
-                    ${materialenHTML}
-                    <div class="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-r-lg"><div class="flex"><div class="flex-shrink-0"><svg class="h-5 w-5 text-amber-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.21 3.03-1.742 3.03H4.42c-1.532 0-2.492-1.696-1.742-3.03l5.58-9.92zM10 13a1 1 0 110-2 1 1 0 010 2zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" /></svg></div><div class="ml-3"><h3 class="text-sm font-semibold text-amber-800">Slimme Waarschuwingen</h3><div class="mt-1 text-sm text-amber-700"><ul class="list-disc list-inside space-y-1">${(data.slimmeWaarschuwingen || [])
-                      .map(w => `<li>${w}</li>`)
-                      .join('')}</ul></div></div></div></div>
-                    ${prijsopgaveHTML}
-                `;
+          document
+            .getElementById('bewaarButton')
+            ?.addEventListener('click', bewaarPlan);
+          document
+            .getElementById('annuleerButton')
+            .addEventListener('click', showDashboard);
 
-          const footer = document.querySelector('#scherm3 footer');
-          footer.innerHTML = `
-            ${actieKnoppenHTML}
-            <button id="bewaarButton" class="w-full bg-slate-900 text-white font-semibold py-3 px-4 rounded-lg shadow-sm hover:bg-slate-800 transition active:scale-95 ${isViewing ? 'hidden' : ''}">Bewaar & sluit</button>
-            <button id="annuleerButton" class="w-full bg-white text-slate-800 font-semibold py-3 px-4 rounded-lg border border-slate-300 shadow-sm hover:bg-slate-100 transition">${isViewing ? 'Terug naar overzicht' : 'Annuleren'}</button>
-          `;
-
-          // Re-bind events for the new buttons
-          document.getElementById('bewaarButton').addEventListener('click', bewaarPlan);
-          document.getElementById('annuleerButton').addEventListener('click', startNieuweKlus);
           if (isViewing) {
-            document.getElementById('maakOfferteButton')?.addEventListener('click', () => updateStatus('Proposal'));
-            document.getElementById('opdrachtGewonnenButton')?.addEventListener('click', () => updateStatus('Won'));
-            document.getElementById('opdrachtVerlorenButton')?.addEventListener('click', () => updateStatus('Lost'));
-            document.getElementById('projectAfrondenButton')?.addEventListener('click', () => updateStatus('Completed'));
+            document
+              .getElementById('maakOfferteButton')
+              ?.addEventListener('click', () => updateStatus('Proposal'));
+            document
+              .getElementById('opdrachtGewonnenButton')
+              ?.addEventListener('click', () => updateStatus('Won'));
+            document
+              .getElementById('opdrachtVerlorenButton')
+              ?.addEventListener('click', () => updateStatus('Lost'));
+            document
+              .getElementById('projectAfrondenButton')
+              ?.addEventListener('click', () => updateStatus('Completed'));
+            document
+              .getElementById('genereerOfferteButton')
+              ?.addEventListener('click', () =>
+                toonDocument(genereerOfferteHTML(data), 'Offerte')
+              );
+            document
+              .getElementById('genereerMateriaalButton')
+              ?.addEventListener('click', () =>
+                toonDocument(genereerMateriaallijstHTML(data), 'Materiaallijst')
+              );
           }
-
           toonScherm('scherm3');
         };
 
-        const loadOpgeslagenKlussen = () => {
-          const klussenJson = localStorage.getItem('opgeslagenKlussen');
-          opgeslagenKlussen = klussenJson ? JSON.parse(klussenJson) : [];
-          opgeslagenKlussen.sort((a, b) => b.createdAt - a.createdAt); // Sort by newest first
-
-          if (opgeslagenKlussen.length === 0) {
-            ui.opgeslagenKlussenLijst.innerHTML = `<p class="text-slate-500 text-sm text-center py-4">Nog geen klussen opgeslagen.</p>`;
-            return;
-          }
-          ui.opgeslagenKlussenLijst.innerHTML = opgeslagenKlussen
-            .map(klus => {
-              const statusColor = klus.planData.status === 'Draft' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800';
-              return `<div data-id="${klus.id}" class="bg-white p-3 rounded-lg border border-slate-200 shadow-sm list-item-enter cursor-pointer hover:bg-slate-100 transition">
-                        <div class="flex justify-between items-center">
-                          <p class="font-semibold text-slate-800 pointer-events-none">${klus.planData.klusTitel}</p>
-                          <span class="text-xs font-medium px-2 py-1 rounded-full ${statusColor}">${klus.planData.status}</span>
-                        </div>
-                        <p class="text-sm text-slate-500 pointer-events-none">${klus.planData.schattingWerkdagen.min}-${klus.planData.schattingWerkdagen.max} dagen</p>
-                      </div>`;
+        const renderKlussenLijst = (klussen, config) => {
+          if (klussen.length === 0) return '';
+          return `<div><h2 class="text-sm font-semibold mb-2 px-1 text-slate-600 flex items-center"><span class="w-2 h-2 rounded-full mr-2 ${
+            config.color
+          }"></span>${config.title}</h2><div class="space-y-2">${klussen
+            .map(k => {
+              const statusInfo = statusDisplay[k.planData.status];
+              return `<div data-id="${k.id}" class="bg-white p-3 rounded-lg border shadow-sm cursor-pointer hover:bg-slate-100"><div class="flex justify-between items-start"><div><p class="font-semibold">${k.planData.klusTitel}</p><p class="text-sm text-slate-500">${k.planData.schattingWerkdagen.min}-${k.planData.schattingWerkdagen.max}d</p></div><span class="text-xs font-medium px-2 py-1 rounded-full ${statusInfo.color} ml-2">${statusInfo.text}</span></div></div>`;
             })
-            .join('');
+            .join('')}</div></div>`;
+        };
+
+        const loadOpgeslagenKlussen = () => {
+          opgeslagenKlussen = JSON.parse(
+            localStorage.getItem('opgeslagenKlussen') || '[]'
+          );
+          if (opgeslagenKlussen.length === 0) {
+            addDemoData();
+            opgeslagenKlussen = JSON.parse(
+              localStorage.getItem('opgeslagenKlussen') || '[]'
+            );
+          }
+          opgeslagenKlussen.sort((a, b) => b.createdAt - a.createdAt);
+          const klussenByStatus = {
+            proposals: opgeslagenKlussen.filter(k =>
+              ['Draft', 'Proposal'].includes(k.planData.status)
+            ),
+            active: opgeslagenKlussen.filter(k => k.planData.status === 'Won'),
+            completed: opgeslagenKlussen.filter(k =>
+              ['Completed', 'Lost'].includes(k.planData.status)
+            ),
+          };
+          const configs = {
+            proposals: { title: 'Offertes & Concepten', color: 'bg-blue-500' },
+            active: { title: 'Actieve Projecten', color: 'bg-green-500' },
+            completed: { title: 'Afgeronde Zaken', color: 'bg-slate-500' },
+          };
+          ui.dashboard.innerHTML =
+            Object.keys(klussenByStatus)
+              .map(key =>
+                renderKlussenLijst(klussenByStatus[key], configs[key])
+              )
+              .join('') ||
+            `<p class="text-slate-500 text-center py-8">Je hebt nog geen klussen.</p>`;
+          ui.dashboard
+            .querySelectorAll('[data-id]')
+            .forEach(item =>
+              item.addEventListener('click', e =>
+                toonOpgeslagenPlan(e.currentTarget.dataset.id)
+              )
+            );
         };
 
         const bewaarPlan = () => {
-          if (!currentPlanData) return;
-
-          const newKlus = {
+          opgeslagenKlussen.push({
             id: Date.now().toString(),
-            userInput: currentPlanData.userInput,
             planData: currentPlanData,
             createdAt: Date.now(),
-          };
+          });
+          localStorage.setItem(
+            'opgeslagenKlussen',
+            JSON.stringify(opgeslagenKlussen)
+          );
+          showToast('Klus opgeslagen!');
+          showDashboard();
+        };
 
-          opgeslagenKlussen.push(newKlus);
-          localStorage.setItem('opgeslagenKlussen', JSON.stringify(opgeslagenKlussen));
-          
-          showToast('Klus opgeslagen!', false);
-          startNieuweKlus();
+        const updateStatus = newStatus => {
+          if (!currentKlusId) return;
+          if (newStatus === 'Won') {
+            const nextDate = getNextAvailableDate();
+            ui.nextAvailableDate.textContent = `Voorgestelde start: ${nextDate.toLocaleDateString(
+              'nl-NL',
+              { weekday: 'long', day: 'numeric', month: 'long' }
+            )}`;
+            ui.dateInput.valueAsDate = nextDate;
+            ui.startDateModal.classList.remove('hidden');
+          } else {
+            const klusIndex = opgeslagenKlussen.findIndex(
+              k => k.id === currentKlusId
+            );
+            if (klusIndex === -1) {
+              showToast('Fout: Kon klus niet vinden.', true);
+              return showDashboard();
+            }
+            opgeslagenKlussen[klusIndex].planData.status = newStatus;
+            currentPlanData = opgeslagenKlussen[klusIndex].planData; // FIX: Update global state
+            localStorage.setItem(
+              'opgeslagenKlussen',
+              JSON.stringify(opgeslagenKlussen)
+            );
+            showToast(`Status bijgewerkt!`);
+            toonPlan(currentPlanData, true); // Refresh view with new buttons
+          }
+        };
+
+        const getNextAvailableDate = () => {
+          const scheduledJobs = opgeslagenKlussen
+            .filter(k => k.planData.status === 'Won' && k.planData.endDate)
+            .map(k => new Date(k.planData.endDate))
+            .sort((a, b) => b - a);
+          let checkDate = new Date();
+          if (scheduledJobs.length > 0) {
+            checkDate = new Date(scheduledJobs[0]);
+            checkDate.setDate(checkDate.getDate() + 1);
+          }
+          checkDate.setHours(0, 0, 0, 0);
+          return checkDate;
+        };
+
+        const saveStartDate = () => {
+          const klusIndex = opgeslagenKlussen.findIndex(
+            k => k.id === currentKlusId
+          );
+          if (klusIndex === -1 || !ui.dateInput.value)
+            return showToast('Selecteer een datum.', true);
+          const startDate = new Date(ui.dateInput.value);
+          const werkdagen =
+            opgeslagenKlussen[klusIndex].planData.schattingWerkdagen.max;
+          const endDate = new Date(startDate);
+          endDate.setDate(startDate.getDate() + Math.max(0, werkdagen - 1));
+          opgeslagenKlussen[klusIndex].planData.status = 'Won';
+          opgeslagenKlussen[klusIndex].planData.startDate = startDate
+            .toISOString()
+            .split('T')[0];
+          opgeslagenKlussen[klusIndex].planData.endDate = endDate
+            .toISOString()
+            .split('T')[0];
+          const activeJobsCount = opgeslagenKlussen.filter(
+            k => k.planData.color
+          ).length;
+          opgeslagenKlussen[klusIndex].planData.color =
+            jobCalendarColors[activeJobsCount % jobCalendarColors.length];
+          localStorage.setItem(
+            'opgeslagenKlussen',
+            JSON.stringify(opgeslagenKlussen)
+          );
+          ui.startDateModal.classList.add('hidden');
+          showToast('Project ingepland!');
+          showDashboard();
+        };
+
+        const renderCalendar = () => {
+          ui.calendarGrid.innerHTML = '';
+          const month = calendarDate.getMonth(),
+            year = calendarDate.getFullYear();
+          ui.calendarMonthYear.textContent = `${calendarDate.toLocaleString(
+            'nl-NL',
+            { month: 'long', year: 'numeric' }
+          )}`;
+          const firstDayOfMonth = new Date(year, month, 1);
+          const daysInMonth = new Date(year, month + 1, 0).getDate();
+          const paddingDays = firstDayOfMonth.getDay();
+          for (let i = 0; i < paddingDays; i++) {
+            ui.calendarGrid.insertAdjacentHTML(
+              'beforeend',
+              `<div class="bg-slate-100 rounded-lg"></div>`
+            );
+          }
+          const scheduledJobs = opgeslagenKlussen.filter(
+            k => k.planData.status === 'Won' && k.planData.startDate
+          );
+          for (let day = 1; day <= daysInMonth; day++) {
+            const dayElement = document.createElement('div');
+            dayElement.className = 'calendar-day p-1 bg-white rounded-lg';
+            dayElement.innerHTML = `<div class="text-xs sm:text-sm text-center sm:text-left">${day}</div>`;
+            const currentDate = new Date(year, month, day);
+            currentDate.setHours(0, 0, 0, 0);
+            scheduledJobs.forEach(job => {
+              const startDate = new Date(job.planData.startDate),
+                endDate = new Date(job.planData.endDate);
+              startDate.setHours(0, 0, 0, 0);
+              endDate.setHours(0, 0, 0, 0);
+              if (currentDate >= startDate && currentDate <= endDate) {
+                const colorClass =
+                  job.planData.color || 'bg-gray-200 text-gray-800';
+                dayElement.insertAdjacentHTML(
+                  'beforeend',
+                  `<div class="calendar-job ${colorClass}">${job.planData.klusTitel}</div>`
+                );
+              }
+            });
+            if (currentDate.toDateString() === new Date().toDateString()) {
+              dayElement
+                .querySelector('div')
+                .classList.add(
+                  '!bg-blue-600',
+                  'text-white',
+                  'rounded-full',
+                  'w-6',
+                  'h-6',
+                  'flex',
+                  'items-center',
+                  'justify-center',
+                  'mx-auto',
+                  'sm:mx-0'
+                );
+            }
+            ui.calendarGrid.appendChild(dayElement);
+          }
+        };
+
+        const showTodayView = () => {
+          const today = new Date();
+          ui.vandaagHeader.textContent = `Check-in voor ${today.toLocaleDateString(
+            'nl-NL',
+            { weekday: 'long', day: 'numeric', month: 'long' }
+          )}`;
+          today.setHours(0, 0, 0, 0);
+          const actieveKlussenVandaag = opgeslagenKlussen.filter(klus => {
+            if (klus.planData.status !== 'Won' || !klus.planData.startDate)
+              return false;
+            const start = new Date(klus.planData.startDate);
+            const end = new Date(klus.planData.endDate);
+            start.setHours(0, 0, 0, 0);
+            end.setHours(0, 0, 0, 0);
+            return today >= start && today <= end;
+          });
+          if (actieveKlussenVandaag.length === 0) {
+            ui.vandaagOutput.innerHTML = `<p class="text-center text-slate-500 py-8">Geen actieve klussen voor vandaag. Geniet van je dag!</p>`;
+          } else {
+            ui.vandaagOutput.innerHTML = actieveKlussenVandaag
+              .map(klus => {
+                const start = new Date(klus.planData.startDate);
+                start.setHours(0, 0, 0, 0);
+                const dayOfProject =
+                  Math.floor((today - start) / (1000 * 60 * 60 * 24)) + 1;
+                const totalDays =
+                  Math.floor(
+                    (new Date(klus.planData.endDate) - start) /
+                      (1000 * 60 * 60 * 24)
+                  ) + 1;
+                return `<div class="bg-white p-4 rounded-xl border shadow-sm"><h3 class="font-bold text-lg text-slate-800">${klus.planData.klusTitel}</h3><p class="text-sm text-slate-600 mb-4">Vandaag is <span class="font-bold">dag ${dayOfProject}</span> van ${totalDays}.</p><p class="text-sm font-medium text-slate-700 mb-2">Hoe verliep de dag?</p><div class="grid grid-cols-3 gap-2"><button data-id="${klus.id}" data-change="-1" class="check-in-btn w-full bg-blue-100 text-blue-800 font-semibold py-2 px-3 rounded-lg">Sneller</button><button data-id="${klus.id}" data-change="0" class="check-in-btn w-full bg-green-100 text-green-800 font-semibold py-2 px-3 rounded-lg">Volgens Plan</button><button data-id="${klus.id}" data-change="1" class="check-in-btn w-full bg-yellow-100 text-yellow-800 font-semibold py-2 px-3 rounded-lg">Langzamer</button></div></div>`;
+              })
+              .join('');
+          }
+          ui.vandaagOutput
+            .querySelectorAll('.check-in-btn')
+            .forEach(btn => btn.addEventListener('click', handleCheckIn));
+          toonScherm('scherm4');
+        };
+
+        const handleCheckIn = event => {
+          const klusId = event.target.dataset.id;
+          const change = parseInt(event.target.dataset.change, 10);
+          if (change === 0) {
+            showToast('Top! Planning ongewijzigd.');
+            return;
+          }
+          adjustSchedule(klusId, change);
+        };
+
+        const adjustSchedule = (klusId, dayChange) => {
+          const klusIndex = opgeslagenKlussen.findIndex(k => k.id === klusId);
+          if (klusIndex === -1) return;
+          const originalEndDate = new Date(
+            opgeslagenKlussen[klusIndex].planData.endDate
+          );
+          const newEndDate = new Date(originalEndDate);
+          newEndDate.setDate(newEndDate.getDate() + dayChange);
+          opgeslagenKlussen[klusIndex].planData.endDate = newEndDate
+            .toISOString()
+            .split('T')[0];
+          opgeslagenKlussen.forEach((otherKlus, otherIndex) => {
+            if (
+              otherIndex === klusIndex ||
+              otherKlus.planData.status !== 'Won' ||
+              !otherKlus.planData.startDate
+            )
+              return;
+            const otherStartDate = new Date(otherKlus.planData.startDate);
+            if (otherStartDate > originalEndDate) {
+              const otherEndDate = new Date(otherKlus.planData.endDate);
+              otherStartDate.setDate(otherStartDate.getDate() + dayChange);
+              otherEndDate.setDate(otherEndDate.getDate() + dayChange);
+              otherKlus.planData.startDate = otherStartDate
+                .toISOString()
+                .split('T')[0];
+              otherKlus.planData.endDate = otherEndDate
+                .toISOString()
+                .split('T')[0];
+            }
+          });
+          localStorage.setItem(
+            'opgeslagenKlussen',
+            JSON.stringify(opgeslagenKlussen)
+          );
+          const message =
+            dayChange > 0
+              ? `Project verlengd, planning is bijgewerkt!`
+              : `Project ingekort, planning is bijgewerkt!`;
+          showToast(message);
+          showTodayView();
         };
 
         const toonOpgeslagenPlan = klusId => {
           const klus = opgeslagenKlussen.find(k => k.id === klusId);
           if (klus) {
-            currentPlanData = klus.planData;
+            currentKlusId = klusId;
+            currentPlanData = klus.planData; // FIX: Ensure global state is always set
             toonPlan(klus.planData, true);
           } else {
-            showToast('Kon dit opgeslagen plan niet openen.');
+            showToast('Kon dit plan niet openen.', true);
           }
         };
 
-        // --- Event Listeners ---
+        const addDemoData = () => {
+          const demoKlussen = [
+            {
+              id: 'demo1',
+              createdAt: new Date().getTime() - 300000,
+              planData: {
+                klusTitel: 'Badkamer renovatie',
+                status: 'Won',
+                schattingWerkdagen: { min: 8, max: 10 },
+                schattingUren: { min: 64, max: 80 },
+                fasering: [
+                  {
+                    faseNummer: 1,
+                    titel: 'Sloopwerk',
+                    omschrijving: 'Verwijderen van oud sanitair en tegels.',
+                  },
+                ],
+                materialen: [
+                  {
+                    categorie: 'Sanitair',
+                    items: [{ item: 'WC-pot', schattingKosten: 250 }],
+                  },
+                ],
+                schattingPrijsopgave: { min: 4500, max: 6000 },
+                startDate: '2025-08-04',
+                endDate: '2025-08-15',
+                color: jobCalendarColors[0],
+              },
+            },
+            {
+              id: 'demo2',
+              createdAt: new Date().getTime() - 200000,
+              planData: {
+                klusTitel: 'Dakkapel plaatsen',
+                status: 'Won',
+                schattingWerkdagen: { min: 3, max: 4 },
+                schattingUren: { min: 24, max: 32 },
+                fasering: [
+                  {
+                    faseNummer: 1,
+                    titel: 'Constructie',
+                    omschrijving: 'Plaatsen van het frame.',
+                  },
+                ],
+                materialen: [
+                  {
+                    categorie: 'Hout',
+                    items: [{ item: 'Balken', schattingKosten: 400 }],
+                  },
+                ],
+                schattingPrijsopgave: { min: 3000, max: 4500 },
+                startDate: '2025-08-18',
+                endDate: '2025-08-21',
+                color: jobCalendarColors[1],
+              },
+            },
+            {
+              id: 'demo3',
+              createdAt: new Date().getTime() - 100000,
+              planData: {
+                klusTitel: 'Keuken schilderen',
+                status: 'Proposal',
+                schattingWerkdagen: { min: 2, max: 3 },
+                schattingUren: { min: 16, max: 24 },
+                fasering: [],
+                materialen: [],
+                schattingPrijsopgave: { min: 800, max: 1200 },
+              },
+            },
+          ];
+          localStorage.setItem(
+            'opgeslagenKlussen',
+            JSON.stringify(demoKlussen)
+          );
+        };
+
+        // NEW Document Generation Functions
+        const toonDocument = (content, title) => {
+          ui.documentTitle.textContent = title;
+          ui.documentContent.textContent = content;
+          toonScherm('scherm6');
+        };
+
+        const genereerOfferteHTML = data => {
+          let text = `OFFERTE\n\n`;
+          text += `Datum: ${new Date().toLocaleDateString('nl-NL')}\n`;
+          text += `Project: ${data.klusTitel}\n\n`;
+          text += `Beste klant,\n\nHierbij de offerte voor het project "${data.klusTitel}".\n\n`;
+          text += `WERKZAAMHEDEN:\n`;
+          data.fasering.forEach(f => {
+            text += `- Fase ${f.faseNummer}: ${f.titel}\n`;
+            text += `  (${f.omschrijving})\n`;
+          });
+          text += `\nKOSTENRAMING (excl. BTW):\n`;
+          text += `Geschatte werkuren: ${data.schattingUren.min} - ${data.schattingUren.max} uur\n`;
+          if (data.schattingPrijsopgave) {
+            text += `Totaalprijs: €${data.schattingPrijsopgave.min} - €${data.schattingPrijsopgave.max}\n\n`;
+          }
+          text += `Met vriendelijke groet,\n[Jouw Naam/Bedrijfsnaam]`;
+          return text;
+        };
+
+        const genereerMateriaallijstHTML = data => {
+          let text = `MATERIAALLIJST\n\n`;
+          text += `Project: ${data.klusTitel}\n\n`;
+          if (!data.materialen || data.materialen.length === 0) {
+            return text + 'Geen materialen gespecificeerd voor dit project.';
+          }
+          data.materialen.forEach(cat => {
+            text += `Categorie: ${cat.categorie}\n`;
+            cat.items.forEach(item => {
+              text += `- ${item.item} (Schatting: €${item.schattingKosten})\n`;
+            });
+            text += `\n`;
+          });
+          return text;
+        };
+
+        // Event Listeners
         ui.planButton.addEventListener('click', genereerPlan);
-        ui.bewaarButton.addEventListener('click', bewaarPlan);
-        ui.annuleerButton.addEventListener('click', startNieuweKlus);
-        ui.opgeslagenKlussenLijst.addEventListener('click', event => {
-          const listItem = event.target.closest('[data-id]');
-          if (listItem) {
-            toonOpgeslagenPlan(listItem.dataset.id);
+        ui.nieuweKlusKnop.addEventListener('click', startNieuweKlusFlow);
+        ui.terugNaarDashboardButton.addEventListener('click', showDashboard);
+        ui.planningKnop.addEventListener('click', showCalendar);
+        ui.vandaagKnop.addEventListener('click', showTodayView);
+        ui.terugVanVandaagButton.addEventListener('click', showDashboard);
+        ui.terugVanPlanningButton.addEventListener('click', showDashboard);
+        ui.saveDateButton.addEventListener('click', saveStartDate);
+        ui.cancelDateButton.addEventListener('click', () =>
+          ui.startDateModal.classList.add('hidden')
+        );
+        ui.prevMonthBtn.addEventListener('click', () => {
+          calendarDate.setMonth(calendarDate.getMonth() - 1);
+          renderCalendar();
+        });
+        ui.nextMonthBtn.addEventListener('click', () => {
+          calendarDate.setMonth(calendarDate.getMonth() + 1);
+          renderCalendar();
+        });
+        ui.klusInput.addEventListener('input', e => {
+          e.target.style.height = 'auto';
+          e.target.style.height = e.target.scrollHeight + 'px';
+        });
+        ui.terugVanDocButton.addEventListener('click', () => {
+          if (currentKlusId) {
+            toonOpgeslagenPlan(currentKlusId);
+          } else {
+            showDashboard();
           }
         });
+        ui.copyDocButton.addEventListener('click', () => {
+          const textToCopy = ui.documentContent.textContent;
+          const textArea = document.createElement('textarea');
+          textArea.value = textToCopy;
+          document.body.appendChild(textArea);
+          textArea.select();
+          try {
+            document.execCommand('copy');
+            showToast('Tekst gekopieerd!');
+          } catch (err) {
+            showToast('Kopiëren mislukt.', true);
+          }
+          document.body.removeChild(textArea);
+        });
 
-        // --- Initialisatie ---
-        startNieuweKlus();
+        showDashboard();
       }
 
-      // --- Startpunt van de App ---
       document.addEventListener('DOMContentLoaded', main);
     </script>
   </body>
